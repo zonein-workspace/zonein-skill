@@ -63,12 +63,20 @@ export ZONEIN_API_KEY="zn_your_key_here"
 | "What agent types are available?" | `agent-templates` |
 | "Check my agent's balance" | `agent-balance <id>` |
 | "What positions does my agent have?" | `agent-positions <id>` |
-| "How do I fund my agent?" | `agent-deposit <id>` (returns USDC deposit address on Arbitrum) |
+| "How do I fund my agent?" | `agent-deposit <id>` then send USDC, then `agent-fund <id>` to bridge to Hyperliquid |
 | "Open a BTC long for $100" | `agent-open <id> --coin BTC --direction LONG --size 100` |
 | "Close my ETH position" | `agent-close <id> --coin ETH` |
 | "Withdraw my funds" | `agent-disable <id>` then `agent-withdraw <id> --to 0x...` |
 
 ## Commands
+
+**IMPORTANT: These Python commands are for YOU (the AI agent) to execute silently. NEVER show the raw commands or raw JSON output to the user.** Instead:
+- Run the command yourself
+- Parse the JSON result
+- Present the information in natural, conversational language
+- Format numbers, tables, and summaries for readability
+
+For example, when user asks "How is my agent doing?", run `agent-stats` and `agent-trades` yourself, then respond like: "Your agent has made 14 trades with a 70% win rate and +$500 PnL."
 
 All commands use the bundled Python script. **Always use these commands — never write inline API calls.**
 
@@ -243,6 +251,15 @@ Returns each position: `coin`, `side` (LONG/SHORT), `size`, `entry_price`, `unre
 
 Returns: `deposit_address` (send USDC on Arbitrum One to this address).
 
+### `agent-fund` — Bridge USDC from Arbitrum to Hyperliquid
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `agent_id` | str | yes | Agent ID |
+
+After sending USDC to the vault address on Arbitrum, call this to auto-bridge funds into Hyperliquid.
+Privy sponsors gas — no ETH needed. Returns `tx_hash` and `amount` bridged.
+
 ### `agent-open` — Open a position (manual order via chat)
 
 | Param | Type | Required | Description |
@@ -331,8 +348,10 @@ python scripts/zonein/scripts/zonein.py agent-update <agent_id> --methodology "F
 **Step 6: Fund the Agent**
 The vault (deposit address) is auto-created with the agent. The create response includes it.
 1. Show user the deposit address from the create response (or use `agent-deposit <agent_id>`)
-2. Tell user: "Send USDC to this address on Arbitrum One. Funds will auto-bridge to Hyperliquid."
-3. `agent-balance <agent_id>` — confirm funds arrived
+2. Tell user: "Send USDC to this address on Arbitrum One."
+3. `agent-balance <agent_id>` — check `arbitrum_usdc` field to confirm deposit arrived
+4. `agent-fund <agent_id>` — bridge USDC from Arbitrum into Hyperliquid (gasless, no ETH needed)
+5. `agent-balance <agent_id>` — confirm Hyperliquid `account_value` shows the funds
 
 **Step 7: Monitor**
 - `agent-balance <agent_id>` — check vault balance
@@ -346,7 +365,9 @@ The vault (deposit address) is auto-created with the agent. The create response 
 **Deposit:**
 1. `agent-deposit <agent_id>` — get vault address
 2. User sends USDC to vault address on **Arbitrum One**
-3. `agent-balance <agent_id>` — verify deposit arrived
+3. `agent-balance <agent_id>` — check `arbitrum_usdc` to verify deposit arrived
+4. `agent-fund <agent_id>` — bridge USDC from Arbitrum → Hyperliquid (gasless)
+5. `agent-balance <agent_id>` — confirm `account_value` on Hyperliquid
 
 **Withdraw:**
 1. `agent-disable <agent_id>` — must disable agent first

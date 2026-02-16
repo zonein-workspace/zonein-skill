@@ -375,6 +375,12 @@ def cmd_agent_deposit(args):
     print(json.dumps(data, indent=2))
 
 
+def cmd_agent_fund(args):
+    """Bridge USDC from Arbitrum to Hyperliquid (auto, gasless)."""
+    data = api_post(f"/agents/{args.agent_id}/fund", {})
+    print(json.dumps(data, indent=2))
+
+
 def cmd_agent_open(args):
     """Open a position (manual order via chat)."""
     body = {
@@ -590,6 +596,11 @@ def main():
     p = sub.add_parser("agent-deposit", help="Get deposit address for funding agent")
     p.add_argument("agent_id", type=str)
     p.set_defaults(func=cmd_agent_deposit)
+
+    # --- Agent Fund (bridge Arb → HL) ---
+    p = sub.add_parser("agent-fund", help="Bridge USDC from Arbitrum to Hyperliquid")
+    p.add_argument("agent_id", type=str)
+    p.set_defaults(func=cmd_agent_fund)
 
     # --- Agent Open (manual order) ---
     p = sub.add_parser("agent-open", help="Open a position (manual order)")
