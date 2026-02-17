@@ -485,10 +485,12 @@ Long: $[X] | Short: $[X]
 
 - Only your API key leaves the machine (sent as `X-API-Key` header to `mcp.zonein.xyz`)
 - No personal data is sent beyond the key and query parameters
+- **Local files read:** `~/.openclaw/openclaw.json` is read **only** as a fallback to locate `ZONEIN_API_KEY` if the environment variable is not set. No other local files are accessed.
+- **Local files written:** none
 - **Read-only commands** (GET requests): signals, leaderboard, consensus, trader lookups, agent status, balance, positions, order history
 - **Write commands** (POST/PATCH/DELETE requests): agent creation, agent configuration updates, fund bridging, manual order placement, withdrawals, agent enable/disable/delete
-- All write/financial commands require **explicit user confirmation** before execution (see Command Rules above)
-- The script does **not** access your filesystem, install packages, or connect to any endpoint other than `https://mcp.zonein.xyz/api/v1`
+- **Confirmation policy:** SKILL.md instructs the agent to ask the user for explicit confirmation before executing any write/financial command. This is an instruction-level policy — the scripts themselves do not programmatically enforce confirmation. Ensure your agent runtime respects this policy. If you only need signals/data, use a read-only API key to prevent unintended financial actions.
+- The scripts connect **only** to `https://mcp.zonein.xyz/api/v1` — no other endpoints, no package installs, no filesystem writes
 
 ## Trust Statement
 

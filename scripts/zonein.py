@@ -5,7 +5,7 @@ Zonein MCP API Client — OpenClaw Skill Script
 SECURITY MANIFEST:
   Environment variables accessed: ZONEIN_API_KEY (only)
   External endpoints called: https://mcp.zonein.xyz/api/v1/* (only)
-  Local files read: none
+  Local files read: ~/.openclaw/openclaw.json (API key fallback only, if ZONEIN_API_KEY env var is not set)
   Local files written: none
 
 Usage:
@@ -66,22 +66,16 @@ def get_api_key():
     """Get ZONEIN_API_KEY from environment."""
     key = os.environ.get("ZONEIN_API_KEY", "")
     if not key:
-        # Try reading from openclaw config
-        config_paths = [
-            os.path.expanduser("~/.openclaw/openclaw.json"),
-            os.path.expanduser("~/.openclaw/.env"),
-        ]
-        for p in config_paths:
-            if os.path.exists(p) and p.endswith(".json"):
-                try:
-                    with open(p, "r") as f:
-                        cfg = json.load(f)
-                    key = (cfg.get("skills", {}).get("entries", {})
-                           .get("zonein", {}).get("apiKey", ""))
-                    if key:
-                        break
-                except Exception:
-                    pass
+        # Fallback: read from ~/.openclaw/openclaw.json (documented in SKILL.md)
+        config_path = os.path.expanduser("~/.openclaw/openclaw.json")
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, "r") as f:
+                    cfg = json.load(f)
+                key = (cfg.get("skills", {}).get("entries", {})
+                       .get("zonein", {}).get("apiKey", ""))
+            except Exception:
+                pass
     if not key:
         print(json.dumps({"error": "ZONEIN_API_KEY not set. Get your key at https://app.zonein.xyz/pm"}))
         sys.exit(1)
