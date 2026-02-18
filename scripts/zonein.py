@@ -267,6 +267,10 @@ def cmd_agent_create(args):
         body.setdefault("trading_preferences", {})["min_confidence_threshold"] = args.min_confidence
     if args.min_consensus:
         body.setdefault("trading_preferences", {})["min_smart_money_consensus"] = args.min_consensus
+    if args.strength_thresholds:
+        body["strength_thresholds"] = json.loads(args.strength_thresholds)
+    if args.timeframe_weights:
+        body["timeframe_weights"] = json.loads(args.timeframe_weights)
     data = api_post("/agents/", body)
     print(json.dumps(data, indent=2))
 
@@ -290,6 +294,10 @@ def cmd_agent_update(args):
         body.setdefault("prompt_config", {})["entry_strategy"] = args.entry_strategy
     if args.exit_framework:
         body.setdefault("prompt_config", {})["exit_framework"] = args.exit_framework
+    if args.strength_thresholds:
+        body["strength_thresholds"] = json.loads(args.strength_thresholds)
+    if args.timeframe_weights:
+        body["timeframe_weights"] = json.loads(args.timeframe_weights)
     if not body:
         print(json.dumps({"error": "No updates provided"}))
         sys.exit(1)
@@ -527,6 +535,8 @@ def main():
     p.add_argument("--max-trades-per-day", type=int, default=None)
     p.add_argument("--min-confidence", type=float, default=None, help="Min confidence 0-1")
     p.add_argument("--min-consensus", type=float, default=None, help="Min SM consensus 0-1")
+    p.add_argument("--strength-thresholds", type=str, default=None, help="JSON: {\"BTC\": {\"min_strength_buy\": 70, \"min_strength_sell\": 65}, ...}")
+    p.add_argument("--timeframe-weights", type=str, default=None, help="JSON: {\"24h\": 0.5, \"4h\": 0.35, \"1h\": 0.15}")
     p.set_defaults(func=cmd_agent_create)
 
     # --- Agent Update ---
@@ -540,6 +550,8 @@ def main():
     p.add_argument("--methodology", type=str, default=None, help="Trading methodology text")
     p.add_argument("--entry-strategy", type=str, default=None, help="Entry strategy text")
     p.add_argument("--exit-framework", type=str, default=None, help="Exit framework text")
+    p.add_argument("--strength-thresholds", type=str, default=None, help="JSON: {\"BTC\": {\"min_strength_buy\": 70, \"min_strength_sell\": 65}, ...}")
+    p.add_argument("--timeframe-weights", type=str, default=None, help="JSON: {\"24h\": 0.5, \"4h\": 0.35, \"1h\": 0.15}")
     p.set_defaults(func=cmd_agent_update)
 
     # --- Agent Deploy ---
