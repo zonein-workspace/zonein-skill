@@ -1,5 +1,5 @@
 ---
-name: Zonein: Whale hunting for trading agents on Hyperliquid & Polymarket
+name: zonein
 version: 2.0.0
 description: |
   Track and analyze top traders with >75% win-rate on Hyperliquid and Polymarket via Zonein API. Create Hyperliquid & Polymarket trading agents with ease. Automated trading process with human-in-the-loop.
@@ -7,7 +7,7 @@ homepage: https://zonein.xyz
 metadata: {"clawdbot":{"emoji":"🧠","requires":{"bins":["python3"],"env":["ZONEIN_API_KEY"]},"primaryEnv":"ZONEIN_API_KEY","files":["scripts/*"],"installer":{"instructions":"1. Go to https://app.zonein.xyz/pm\n2. Log in with your refcode\n3. Click 'Get API Key' button\n4. Copy the key and paste it below"}}}
 ---
 
-# Zonein — Smart Money Intelligence
+# Zonein: Whale hunting for trading agents on Hyperliquid & Polymarket
 
 Fetch live trading intelligence from Polymarket and HyperLiquid smart money wallets using the bundled script.
 
