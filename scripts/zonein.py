@@ -7,6 +7,8 @@ SECURITY MANIFEST:
   External endpoints called: https://mcp.zonein.xyz/api/v1/* (only)
   Local files read: ~/.openclaw/openclaw.json (API key fallback only, if ZONEIN_API_KEY env var is not set)
   Local files written: none
+  Output sanitization: All API responses are truncated (max 500 chars/field) before output
+  Financial gate: --confirm flag required for all financial commands (programmatic, not bypassable via prompt)
 
 Usage:
   python3 scripts/zonein.py <command> [options]
@@ -64,6 +66,30 @@ except ImportError:
 API_BASE = "https://mcp.zonein.xyz/api/v1"
 CONTENT_JSON = "application/json"
 CONFIRM_HELP = "Required: confirms user approved this financial action"
+
+# Max length for any single string field in API responses (defense against oversized payloads)
+_MAX_FIELD_LEN = 500
+
+
+def _sanitize_value(v):
+    """Sanitize a single value from API response. Truncates long strings."""
+    if isinstance(v, str) and len(v) > _MAX_FIELD_LEN:
+        return v[:_MAX_FIELD_LEN] + "…[truncated]"
+    return v
+
+
+def _sanitize(obj):
+    """Recursively sanitize API response data. Truncates oversized string fields."""
+    if isinstance(obj, dict):
+        return {k: _sanitize(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_sanitize(item) for item in obj]
+    return _sanitize_value(obj)
+
+
+def _output(data):
+    """Sanitize and print API response as JSON."""
+    print(json.dumps(_sanitize(data), indent=2))
 
 
 def get_api_key():
@@ -162,7 +188,7 @@ def cmd_signals(args):
     if args.min_wallets:
         params["min_wallets"] = args.min_wallets
     data = api_request("/pm/signals", params)
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_leaderboard(args):
@@ -173,20 +199,20 @@ def cmd_leaderboard(args):
         "limit": args.limit,
     }
     data = api_request("/pm/leaderboard", params)
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_consensus(args):
     """PM consensus positions."""
     params = {"min_bettors": args.min_bettors}
     data = api_request("/pm/consensus", params)
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_trader(args):
     """PM trader profile."""
     data = api_request(f"/pm/trader/{args.wallet}")
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_perp_signals(args):
@@ -197,7 +223,7 @@ def cmd_perp_signals(args):
     if args.min_score:
         params["min_score"] = args.min_score
     data = api_request("/perp/signals", params)
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_perp_traders(args):
@@ -208,44 +234,44 @@ def cmd_perp_traders(args):
     if args.categories:
         params["categories"] = args.categories
     data = api_request("/perp/traders", params)
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_perp_top(args):
     """Perp top performers."""
     params = {"limit": args.limit, "time_period": args.period}
     data = api_request("/perp/traders/top", params)
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_perp_categories(args):
     """Perp categories."""
     data = api_request("/perp/categories")
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_perp_coins(args):
     """Perp coin distribution."""
     data = api_request("/perp/coins")
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_perp_trader(args):
     """Perp trader details."""
     data = api_request(f"/perp/trader/{args.address}")
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_agents(args):
     """List trading agents."""
     data = api_request("/agents/")
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_agent_get(args):
     """Get agent details."""
     data = api_request(f"/agents/{args.agent_id}")
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_agent_create(args):
@@ -276,7 +302,7 @@ def cmd_agent_create(args):
     if args.timeframe_weights:
         body["timeframe_weights"] = json.loads(args.timeframe_weights)
     data = api_post("/agents/", body)
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_agent_update(args):
@@ -306,101 +332,101 @@ def cmd_agent_update(args):
         print(json.dumps({"error": "No updates provided"}))
         sys.exit(1)
     data = api_patch(f"/agents/{args.agent_id}", body)
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_agent_deploy(args):
     """Deploy agent — validate + enable."""
     _require_confirm(args, "Deploy and enable agent for live trading")
     data = api_post(f"/agents/{args.agent_id}/deploy", {})
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_agent_enable(args):
     """Enable agent."""
     _require_confirm(args, "Enable agent for live trading")
     data = api_post(f"/agents/{args.agent_id}/enable", {})
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_agent_disable(args):
     """Disable agent."""
     data = api_post(f"/agents/{args.agent_id}/disable", {})
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_agent_pause(args):
     """Pause agent."""
     data = api_post(f"/agents/{args.agent_id}/pause")
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_agent_delete(args):
     """Delete agent."""
     data = api_delete(f"/agents/{args.agent_id}")
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_agent_stats(args):
     """Agent performance stats."""
     data = api_request(f"/agents/{args.agent_id}/stats")
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_agent_trades(args):
     """Agent trade history."""
     params = {"limit": args.limit}
     data = api_request(f"/agents/{args.agent_id}/trades", params)
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_agent_vault(args):
     """Agent vault/wallet info."""
     data = api_request(f"/agents/{args.agent_id}/vault")
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_agent_templates(args):
     """Available agent types & config templates."""
     data = api_request("/agents/config/templates")
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_agent_assets(args):
     """Available trading assets."""
     data = api_request("/agents/config/assets")
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_agent_categories(args):
     """Smart money categories with stats."""
     data = api_request("/agents/config/categories")
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_agent_balance(args):
     """Agent vault balance (live from Hyperliquid)."""
     data = api_request(f"/agents/{args.agent_id}/balance")
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_agent_positions(args):
     """Agent open positions (live from Hyperliquid)."""
     data = api_request(f"/agents/{args.agent_id}/positions")
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_agent_deposit(args):
     """Get deposit address for funding agent."""
     data = api_request(f"/agents/{args.agent_id}/deposit-info")
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_agent_fund(args):
     """Bridge USDC from Arbitrum to Hyperliquid."""
     _require_confirm(args, "Bridge USDC from Arbitrum to Hyperliquid")
     data = api_post(f"/agents/{args.agent_id}/fund", {})
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_agent_open(args):
@@ -415,7 +441,7 @@ def cmd_agent_open(args):
     if args.leverage:
         body["leverage"] = args.leverage
     data = api_post(f"/agents/{args.agent_id}/orders", body)
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_agent_close(args):
@@ -427,14 +453,14 @@ def cmd_agent_close(args):
         "direction": "LONG",
     }
     data = api_post(f"/agents/{args.agent_id}/orders", body)
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_agent_orders(args):
     """Manual order history."""
     params = {"limit": args.limit}
     data = api_request(f"/agents/{args.agent_id}/orders", params)
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_agent_withdraw(args):
@@ -442,7 +468,7 @@ def cmd_agent_withdraw(args):
     _require_confirm(args, f"Withdraw funds to {args.to}")
     body = {"destination_address": args.to}
     data = api_post(f"/agents/{args.agent_id}/withdraw", body)
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def _process_backtest_msg(msg):
@@ -519,7 +545,7 @@ def cmd_agent_backtest(args):
                 report = _process_backtest_msg(json.loads(line))
                 if report is not None:
                     last_report = report
-            print(json.dumps(_build_backtest_result(backtest_id, dashboard_url, last_report), indent=2))
+            _output(_build_backtest_result(backtest_id, dashboard_url, last_report))
     except urllib.error.HTTPError as e:
         raw = e.read().decode("utf-8", errors="replace")
         try:
@@ -536,13 +562,13 @@ def cmd_agent_backtest(args):
 def cmd_agent_backtests(args):
     """List past backtests for an agent."""
     data = api_request(f"/backtest/list/{args.agent_id}", {"limit": args.limit})
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def cmd_status(args):
     """Check API key status."""
     data = api_request("/auth/api-key/status")
-    print(json.dumps(data, indent=2))
+    _output(data)
 
 
 def main():
