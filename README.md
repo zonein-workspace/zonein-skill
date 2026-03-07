@@ -1,4 +1,4 @@
-# Zonein — Smart Money Intelligence for OpenClaw
+# Zonein: Whale hunting for trading agents on Hyperliquid & Polymarket
 
 An [OpenClaw](https://openclaw.io) skill that fetches live trading intelligence from **Polymarket** and **HyperLiquid** smart money wallets. Track top traders (>75% win-rate), follow whale movements, and create automated trading agents — all from your AI assistant.
 

@@ -1,5 +1,5 @@
 ---
-name: zonein
+name: Zonein: Whale hunting for trading agents on Hyperliquid & Polymarket
 version: 2.0.0
 description: |
   Track and analyze top traders with >75% win-rate on Hyperliquid and Polymarket via Zonein API. Create Hyperliquid & Polymarket trading agents with ease. Automated trading process with human-in-the-loop.
