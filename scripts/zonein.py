@@ -48,6 +48,15 @@ Commands:
   agent-templates  — Available agent types & config templates
   agent-assets     — Available trading assets
   agent-categories — Smart money categories with stats
+  dashboard        — AI Dashboard overview (top signals all types)
+  dashboard-latest — Latest AI signal snapshots by asset type
+  dashboard-asset  — Full detail for single asset (SM + TA + Market)
+  derivatives <sym>— Derivatives indicators (OI, funding, L/S, liq)
+  fear-greed       — Crypto Fear & Greed Index
+  derivatives-pairs <sym> — Per-exchange pair data
+  ta <sym>         — Multi-timeframe TA indicators
+  ta-single <sym> <ind> — Single TA indicator value
+  liquidation-map <coin> — Liquidation price distribution
   status           — Check API key status
 """
 
@@ -565,6 +574,78 @@ def cmd_agent_backtests(args):
     _output(data)
 
 
+def cmd_dashboard(args):
+    """AI Dashboard overview — top signals across all asset types."""
+    data = api_request("/dashboard/overview")
+    _output(data)
+
+
+def cmd_dashboard_latest(args):
+    """Latest AI signal snapshots by asset type."""
+    params = {}
+    if args.limit:
+        params["limit"] = args.limit
+    data = api_request(f"/dashboard/latest/{args.type}", params)
+    _output(data)
+
+
+def cmd_dashboard_asset(args):
+    """Full detail for a single asset (SM + TA + Market data)."""
+    data = api_request(f"/dashboard/asset/{args.type}/{args.symbol.upper()}")
+    _output(data)
+
+
+def cmd_derivatives(args):
+    """All derivatives indicators for a coin (OI, funding, L/S ratio, liquidations)."""
+    data = api_request(f"/derivatives/indicators/{args.symbol.upper()}")
+    _output(data)
+
+
+def cmd_fear_greed(args):
+    """Crypto Fear & Greed Index."""
+    data = api_request("/derivatives/fear-greed")
+    _output(data)
+
+
+def cmd_derivatives_pairs(args):
+    """Per-exchange pair data (OI, volume, funding, liquidation, price)."""
+    data = api_request(f"/derivatives/pairs/{args.symbol.upper()}")
+    _output(data)
+
+
+def cmd_ta(args):
+    """Multi-timeframe TA indicators for a symbol."""
+    params = {}
+    if args.timeframes:
+        params["timeframes"] = args.timeframes
+    if args.indicators:
+        params["indicators"] = args.indicators
+    if args.exchange:
+        params["exchange"] = args.exchange
+    data = api_request(f"/ta/indicators/{args.symbol.upper()}", params)
+    _output(data)
+
+
+def cmd_ta_single(args):
+    """Single TA indicator value."""
+    params = {"interval": args.interval}
+    if args.exchange:
+        params["exchange"] = args.exchange
+    if args.period:
+        params["period"] = args.period
+    data = api_request(f"/ta/indicator/{args.symbol.upper()}/{args.indicator}", params)
+    _output(data)
+
+
+def cmd_liquidation_map(args):
+    """Liquidation price distribution for a coin."""
+    params = {}
+    if args.buckets:
+        params["buckets"] = args.buckets
+    data = api_request(f"/perp/liquidation-map/{args.coin.upper()}", params)
+    _output(data)
+
+
 def cmd_status(args):
     """Check API key status."""
     data = api_request("/auth/api-key/status")
@@ -798,6 +879,59 @@ def main():
     p.add_argument("agent_id", type=str)
     p.add_argument("--limit", type=int, default=10)
     p.set_defaults(func=cmd_agent_backtests)
+
+    # --- Dashboard Overview ---
+    p = sub.add_parser("dashboard", help="AI Dashboard overview — top signals across all asset types")
+    p.set_defaults(func=cmd_dashboard)
+
+    # --- Dashboard Latest ---
+    p = sub.add_parser("dashboard-latest", help="Latest AI signal snapshots by asset type")
+    p.add_argument("type", type=str, help="Asset type: perp, spot, pm, hip3")
+    p.add_argument("--limit", type=int, default=None, help="Max snapshots to return")
+    p.set_defaults(func=cmd_dashboard_latest)
+
+    # --- Dashboard Asset Detail ---
+    p = sub.add_parser("dashboard-asset", help="Full detail for a single asset (SM + TA + Market)")
+    p.add_argument("type", type=str, help="Asset type: perp, spot, pm, hip3")
+    p.add_argument("symbol", type=str, help="Asset symbol (e.g. BTC, ETH, SOL)")
+    p.set_defaults(func=cmd_dashboard_asset)
+
+    # --- Derivatives Indicators ---
+    p = sub.add_parser("derivatives", help="All derivatives indicators for a coin (OI, funding, L/S ratio, liq)")
+    p.add_argument("symbol", type=str, help="Coin symbol: BTC, ETH, SOL, etc.")
+    p.set_defaults(func=cmd_derivatives)
+
+    # --- Fear & Greed ---
+    p = sub.add_parser("fear-greed", help="Crypto Fear & Greed Index")
+    p.set_defaults(func=cmd_fear_greed)
+
+    # --- Derivatives Pairs ---
+    p = sub.add_parser("derivatives-pairs", help="Per-exchange pair data (OI, volume, funding, liq, price)")
+    p.add_argument("symbol", type=str, help="Coin symbol: BTC, ETH, SOL, etc.")
+    p.set_defaults(func=cmd_derivatives_pairs)
+
+    # --- TA Multi-timeframe ---
+    p = sub.add_parser("ta", help="Multi-timeframe TA indicators (RSI, MACD, BB, etc.)")
+    p.add_argument("symbol", type=str, help="Coin symbol: BTC, ETH, SOL, etc.")
+    p.add_argument("--timeframes", type=str, default=None, help="Comma-separated: 15m,4h,1d")
+    p.add_argument("--indicators", type=str, default=None, help="Comma-separated: rsi,macd,bbands")
+    p.add_argument("--exchange", type=str, default=None, help="Exchange name (default: binancefutures)")
+    p.set_defaults(func=cmd_ta)
+
+    # --- TA Single Indicator ---
+    p = sub.add_parser("ta-single", help="Single TA indicator value")
+    p.add_argument("symbol", type=str, help="Coin symbol: BTC, ETH, SOL, etc.")
+    p.add_argument("indicator", type=str, help="Indicator name: rsi, macd, bbands, sma, ema, etc.")
+    p.add_argument("--interval", type=str, default="4h", help="Timeframe: 15m, 1h, 4h, 1d")
+    p.add_argument("--exchange", type=str, default=None, help="Exchange name")
+    p.add_argument("--period", type=int, default=None, help="Period parameter (e.g. 14 for RSI)")
+    p.set_defaults(func=cmd_ta_single)
+
+    # --- Liquidation Map ---
+    p = sub.add_parser("liquidation-map", help="Liquidation price distribution for a coin")
+    p.add_argument("coin", type=str, help="Coin symbol: BTC, ETH, SOL, etc.")
+    p.add_argument("--buckets", type=int, default=None, help="Number of price buckets (10-100, default 40)")
+    p.set_defaults(func=cmd_liquidation_map)
 
     # --- Status ---
     p = sub.add_parser("status", help="Check API key status")

@@ -7,7 +7,7 @@ An [OpenClaw](https://openclaw.io) skill that fetches live trading intelligence 
 - **Polymarket Signals** — Smart money trading signals, leaderboards, and consensus across politics, crypto, sports, and more
 - **HyperLiquid Perp Signals** — Whale positions, long/short sentiment, and top performer rankings
 - **Wallet Tracking** — Look up any trader's profile, PnL, and open positions
-- **Trading Agents** — Create, configure, and manage automated trading agents on HyperLiquid with human-in-the-loop approval
+- **Trading Agents** — Create, configure, and manage automated Perp trading agents on HyperLiquid with human-in-the-loop approval (Prediction Market agents not yet supported)
 - **Backtesting** — Run historical simulations against real smart money signals and OHLC data
 
 ## Prerequisites
