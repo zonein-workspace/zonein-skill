@@ -391,7 +391,7 @@ See **Agent Creation Flow** in Operational Flows for full details on all 3 data 
 | `--trading-risk` | json | from preset | `{max_positions, max_position_size_pct, default_stop_loss_pct, default_take_profit_pct, max_leverage}` |
 | `--strength-thresholds` | json | from preset | Entry/exit thresholds per asset: `{"BTC":{"min_strength_buy":70,"min_strength_sell":65},"OTHERS":{...}}` |
 | `--timeframe-weights` | json | from preset | SM signal timeframe weights: `{"24h":0.5,"4h":0.35,"1h":0.15}` (must sum to 1.0) |
-| `--trigger-conditions` | json | none | Programmatic entry/exit triggers combining SM + TA + Market fields with AND/OR logic. See trigger_conditions schema in Agent Creation Flow |
+| `--trigger-conditions` | json | auto from preset | Programmatic entry/exit triggers combining SM + TA + Market fields with AND/OR logic. Auto-filled from agent_type preset if not provided. See trigger_conditions schema in Agent Creation Flow |
 | `--prompt-config` | json | none | LLM strategy prompts: `{trading_strategy, custom_rules, risk_management}` — guides all AI trading decisions |
 | `--leverage` | int | 5 | Max leverage (1–20) |
 | `--risk-per-trade` | float | 1 | Risk per trade % |
@@ -409,11 +409,14 @@ See **Agent Creation Flow** in Operational Flows for full details on all 3 data 
 | `--assets` | str | Comma-separated assets |
 | `--categories` | str | Comma-separated categories |
 | `--leverage` | int | Max leverage |
-| `--methodology` | str | Trading methodology text |
-| `--entry-strategy` | str | Entry strategy text |
-| `--exit-framework` | str | Exit framework text |
+| `--prompt-config` | json | `{trading_strategy, custom_rules, risk_management}` — LLM strategy prompts |
+| `--trigger-conditions` | json | Entry/exit triggers (see trigger_conditions schema) |
+| `--trading-risk` | json | `{max_positions, max_position_size_pct, default_stop_loss_pct, default_take_profit_pct, max_leverage}` |
+| `--signal-weights` | json | `{sm, ta, market}` summing to 100 |
 | `--strength-thresholds` | json | Entry/exit thresholds per asset (see Strength Thresholds Guide) |
 | `--timeframe-weights` | json | Timeframe weight distribution |
+| `--execution-mode` | str | `auto` or `hitl` |
+| `--withdrawal-addresses` | str | Comma-separated 0x addresses for withdrawal whitelist |
 
 ### `agent-deploy` — Validate config and enable trading
 
@@ -900,6 +903,25 @@ Market score formula: Funding(25%) + OI Change(20%) + L/S Ratio(20%) + Liquidati
 
 ---
 
+#### ⚠️ Must-Have Fields for Perp Agents (Checklist)
+
+Before deploying, ensure ALL of these fields exist in the agent config. Deploy will **fail** if any are missing:
+
+| # | Field | Auto-filled? | Source |
+|---|-------|-------------|--------|
+| 1 | `trigger_conditions` | ✅ from `agent_type` preset | Controls when agent enters/exits trades |
+| 2 | `trading_risk` | ✅ auto-generated from `risk_profile` + `max_leverage` | SL/TP, position sizing, leverage |
+| 3 | `llm` | ✅ auto-generated from `model_provider` + `model_name` | LLM for trade decisions |
+| 4 | `signal_weights` | ✅ from `agent_type` preset | SM/TA/Market weighting |
+| 5 | `strength_thresholds` | ✅ from `agent_type` preset | Min signal strength per asset |
+| 6 | `timeframe_weights` | ✅ from `agent_type` preset | 24h/4h/1h weighting |
+| 7 | `prompt_config.trading_strategy` | ❌ AI generates from Q4 | Overall trading approach for LLM |
+| 8 | `prompt_config.custom_rules` | ❌ AI generates from Q4 | Specific entry/exit rules for LLM |
+| 9 | `prompt_config.risk_management` | ⚠️ recommended | Risk rules for LLM |
+
+> **If the create response includes `config_warnings`, address them before deploying.**
+> **If deploy returns errors, fix them with `agent-update` before retrying.**
+
 #### Step 1: Collect Agent Configuration
 
 Collect these parameters from the user:
@@ -928,27 +950,49 @@ Each preset auto-fills SM categories, strength thresholds, and timeframe weights
 | Moderate | 5x | 5%/10% (1:2 RR) | 5 | 15% | 3% |
 | Aggressive | 10x | 5%/7.5% (1:1.5 RR) | 8 | 20% | 5% |
 
-**Q4 (optional — for advanced users): Custom strategy description?** → `prompt_config`
-User can describe their trading philosophy in natural language. This becomes the LLM system prompt that guides all trading decisions. Examples:
-- "Only enter on RSI oversold + SM consensus >70% + positive funding reset"
-- "Follow whale wallets on BTC only, exit on any short squeeze signal"
-- "Contrarian: fade extreme funding rates, enter when liquidation cascade clears"
+**Q4: What signals should the agent rely on to enter trades?** → `trigger_conditions` + `signal_weights` + `prompt_config`
 
-The prompt_config fields:
-- `trading_strategy`: Overall approach description
-- `custom_rules`: Specific entry/exit rules
-- `risk_management`: Custom risk rules for the LLM
-
-**Q5 (optional): What conditions should trigger entry/exit?** → AI auto-generates `trigger_conditions`
-
-Ask the user in plain language about their entry/exit preferences. **DO NOT** show JSON schema to user. Collect intent, then YOU (the AI) build the trigger_conditions.
+**⚠️ REQUIRED — Always ask this.** This is the most important question. It determines WHAT the agent looks at before trading.
 
 **How to ask:**
-Ask 2 sub-questions:
-- **"When should the agent enter a long/short position?"** — e.g., "When smart money is buying heavily and RSI is not yet overbought"
-- **"When should the agent exit?"** — e.g., "When smart money flips direction or there's a liquidation cascade"
+> "What signals should the agent use to decide when to enter/exit trades?"
+> - **A) Smart Money primary** — Enter when smart money wallets are heavily buying/selling, exit when SM flips direction
+> - **B) Technical Analysis primary** — Enter when RSI, MACD, SuperTrend confirm a trend
+> - **C) Combined SM + TA** — Require both smart money AND technical indicators to align (stricter, fewer trades but higher accuracy)
+> - **D) Custom** — Describe your strategy and I'll convert it into trading conditions
+>
+> Or describe in your own words, e.g., "Enter when smart money is buying heavily + RSI not yet overbought + funding rate reset"
 
-If user doesn't have specific preferences, skip this — presets from Q2 are sufficient.
+**Mapping from answer to config:**
+
+| Answer | `signal_weights` | `trigger_conditions` template | Key conditions |
+|--------|-----------------|-------------------------------|----------------|
+| A) SM primary | sm:50, ta:25, market:25 | SM ratio ≥55 + wallet_count ≥3 + SuperTrend confirm | SM drives entry, TA confirms |
+| B) TA primary | sm:25, ta:50, market:25 | SuperTrend + RSI range + MACD histogram | TA drives entry, SM confirms |
+| C) Combined SM + TA | sm:40, ta:40, market:20 | SM ratio ≥55 + wallet ≥3 + SuperTrend + RSI + ADX | Both must align — fewer but higher-quality trades |
+| D) Custom | based on description | AI generates from user intent | See translation guide below |
+
+**If user picks A, B, or C:** Use the corresponding template from the agent_type preset, adjusted by signal preference above. Auto-generate `prompt_config.custom_rules` to describe the conditions in plain language.
+
+**If user picks D or describes in their own words:** Use the Intent → trigger_conditions translation guide below to build custom conditions. **DO NOT** show JSON to user. Build it, then summarize back in plain language for confirmation.
+
+**If user says "defaults" / "use defaults":** Use preset from Q2. Still generate `custom_rules` describing what the preset does.
+
+**Follow-up (optional, for D or advanced users):**
+> "When should the agent exit a position?"
+> e.g., "When smart money flips direction" / "When RSI hits overbought/oversold" / "When there's a liquidation cascade"
+
+**Q5 (optional — for advanced users): Additional strategy notes?** → `prompt_config`
+
+If the user has more specific trading philosophy beyond Q4, collect it here. Examples:
+- "Contrarian: fade extreme funding rates"
+- "Only trade during high volume hours"
+- "Never hold through funding payment"
+
+The prompt_config fields (AI generates from Q4 + Q5 answers):
+- `trading_strategy`: Overall approach description (from Q4 answer)
+- `custom_rules`: Specific entry/exit rules matching trigger_conditions (from Q4)
+- `risk_management`: Risk rules matching Q3 risk profile
 
 **Q6: Withdrawal address?** → `withdrawal_addresses`
 **ALWAYS ask this before creating the agent.** Without it, funds can be withdrawn to ANY address.
@@ -1120,15 +1164,17 @@ After generating, present a **plain-language summary** to user for confirmation:
 
 Use `agent-create` command. Build the call from collected answers.
 
-**Example — Momentum BTC trader, moderate risk:**
+**Example — Momentum BTC trader, moderate risk, SM+TA combined signals:**
 ```
-agent-create --name "BTC Momentum" --type momentum_hunter --assets BTC,ETH --leverage 5 --risk-per-trade 1 --max-daily-loss 3 --risk-reward 1:2 --min-confidence 0.8 --min-consensus 0.7
+agent-create --name "BTC Momentum" --type momentum_hunter --assets BTC,ETH --leverage 5 --risk-per-trade 1 --max-daily-loss 3 --risk-reward 1:2 --min-confidence 0.8 --min-consensus 0.7 --prompt-config '{"trading_strategy":"Momentum trading following SM consensus with RSI and taker ratio confirmation on BTC and ETH","custom_rules":"Entry LONG: SM long_ratio >=55, wallet_count >=3, RSI <=65, taker_ratio >0.51. Entry SHORT: SM short_ratio >=55, RSI >=35, taker_ratio <0.49. Exit on SM flip or RSI extremes.","risk_management":"Max 5 positions, 1% risk per trade, 3% max daily loss, 5x leverage"}'
 ```
 
-**Example — Advanced with trigger_conditions:**
+**Example — Advanced with custom trigger_conditions:**
 ```
-agent-create --name "SM Divergence Hunter" --type precision_master --assets BTC,ETH,SOL --trigger-conditions '{"entry":{"long":{"op":"and","conditions":[{"field":"sm.long_ratio","compare":">=","value":70},{"field":"sm.wallet_count","compare":">=","value":3},{"field":"ta.4h.rsi","compare":"<=","value":60}]},"short":{"op":"and","conditions":[{"field":"sm.short_ratio","compare":">=","value":70},{"field":"sm.wallet_count","compare":">=","value":3},{"field":"ta.4h.rsi","compare":">=","value":40}]}}}' --leverage 5
+agent-create --name "SM Divergence Hunter" --type precision_master --assets BTC,ETH,SOL --trigger-conditions '{"entry":{"long":{"op":"and","conditions":[{"field":"sm.long_ratio","compare":">=","value":70},{"field":"sm.wallet_count","compare":">=","value":3},{"field":"ta.4h.rsi","compare":"<=","value":60}]},"short":{"op":"and","conditions":[{"field":"sm.short_ratio","compare":">=","value":70},{"field":"sm.wallet_count","compare":">=","value":3},{"field":"ta.4h.rsi","compare":">=","value":40}]}}}' --leverage 5 --prompt-config '{"trading_strategy":"Precision entries on strong SM divergence with TA confirmation","custom_rules":"Entry requires SM ratio >=70 with >=3 wallets AND RSI not extreme. Exit on SM direction reversal.","risk_management":"Tight SL 0.5%, TP 1%, max 10x leverage"}'
 ```
+
+> **Note:** `--prompt-config` with `trading_strategy` and `custom_rules` is required. Without it, deploy will fail. AI should auto-generate this from Q4 answers.
 
 #### Step 3: Review & Deploy
 1. `agent-get <agent_id>` — review full config
