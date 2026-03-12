@@ -399,6 +399,8 @@ See **Agent Creation Flow** in Operational Flows for full details on all 3 data 
 | `--risk-reward` | str | 1:2 | Risk:reward ratio |
 | `--min-confidence` | float | 0.8 | Min LLM confidence to execute (0–1) |
 | `--min-consensus` | float | 0.7 | Min smart money consensus (0–1) |
+| `--withdrawal-addresses` | str | none | Whitelisted 0x withdrawal addresses (comma-separated). **Strongly recommended** — without it, funds can be withdrawn to ANY address |
+| `--execution-mode` | str | auto | `auto` (fully automated) or `hitl` (human-in-the-loop: creates trade plans for user approval) |
 
 ### `agent-update` — Update agent configuration
 
@@ -950,39 +952,63 @@ Each preset auto-fills SM categories, strength thresholds, and timeframe weights
 | Moderate | 5x | 5%/10% (1:2 RR) | 5 | 15% | 3% |
 | Aggressive | 10x | 5%/7.5% (1:1.5 RR) | 8 | 20% | 5% |
 
-**Q4: What signals should the agent rely on to enter trades?** → `trigger_conditions` + `signal_weights` + `prompt_config`
+**Q4: How should the agent decide when to enter a trade?** → `trigger_conditions` + `signal_weights` + `prompt_config`
 
-**⚠️ REQUIRED — Always ask this.** This is the most important question. It determines WHAT the agent looks at before trading.
+**⚠️ REQUIRED — Always ask this.** This is the most important question. All agents use SM + TA + Market data — this question determines the **trading philosophy**: when to pull the trigger, how patient to be, and what edge to exploit.
 
 **How to ask:**
-> "What signals should the agent use to decide when to enter/exit trades?"
-> - **A) Smart Money primary** — Enter when smart money wallets are heavily buying/selling, exit when SM flips direction
-> - **B) Technical Analysis primary** — Enter when RSI, MACD, SuperTrend confirm a trend
-> - **C) Combined SM + TA** — Require both smart money AND technical indicators to align (stricter, fewer trades but higher accuracy)
-> - **D) Custom** — Describe your strategy and I'll convert it into trading conditions
+> "The agent always analyzes Smart Money, Technical, and Market data together. The real question is: **what's your trading philosophy?**"
 >
-> Or describe in your own words, e.g., "Enter when smart money is buying heavily + RSI not yet overbought + funding rate reset"
+> - **A) Trend Following** — Wait for SM + TA to confirm a clear trend, then ride it. Patient, fewer trades, larger moves. Best for swing/position styles.
+> - **B) Early Entry** — Enter as soon as SM wallets show strong conviction, before TA fully confirms. Catch moves early, accept more false signals. Best for momentum/scalping.
+> - **C) Contrarian** — Fade extreme sentiment: enter when funding rate is extreme + RSI overbought/oversold BUT SM starts showing reversal. Counter-trend, high risk/reward.
+> - **D) High-Conviction Filter** — Require ALL signals to strongly align (SM consensus ≥70%, TA trend confirmed, favorable funding + OI). Very few trades but highest win rate.
+> - **E) Custom** — Describe your edge in your own words and I'll build the conditions.
+>
+> Or describe in your own words, e.g., "Enter when SM wallets are accumulating but price hasn't moved yet — catch the move before it happens"
 
 **Mapping from answer to config:**
 
-| Answer | `signal_weights` | `trigger_conditions` template | Key conditions |
-|--------|-----------------|-------------------------------|----------------|
-| A) SM primary | sm:50, ta:25, market:25 | SM ratio ≥55 + wallet_count ≥3 + SuperTrend confirm | SM drives entry, TA confirms |
-| B) TA primary | sm:25, ta:50, market:25 | SuperTrend + RSI range + MACD histogram | TA drives entry, SM confirms |
-| C) Combined SM + TA | sm:40, ta:40, market:20 | SM ratio ≥55 + wallet ≥3 + SuperTrend + RSI + ADX | Both must align — fewer but higher-quality trades |
-| D) Custom | based on description | AI generates from user intent | See translation guide below |
+| Answer | Entry timing | `trigger_conditions` key difference | `signal_weights` | Trade frequency |
+|--------|-------------|-------------------------------------|-------------------|-----------------|
+| A) Trend Following | After SM + TA confirm | SM ratio ≥55 + SuperTrend aligned + ADX ≥20 (trend strength) | sm:40, ta:35, market:25 | Medium (3-5/week) |
+| B) Early Entry | SM leads, TA just not-against | SM ratio ≥60 + wallet_count ≥3, RSI not extreme (just filter) | sm:50, ta:25, market:25 | High (5-10/week) |
+| C) Contrarian | Sentiment extreme + SM reversal | funding_rate extreme + RSI ≥75/≤25 + SM ratio flipping direction | sm:40, ta:30, market:30 | Low (1-3/week) |
+| D) High-Conviction | All signals strongly aligned | SM ratio ≥70 + wallet ≥5 + SuperTrend + RSI + MACD + favorable funding | sm:35, ta:35, market:30 | Very low (1-2/week) |
+| E) Custom | based on description | AI generates from user intent | based on description | Varies |
 
-**If user picks A, B, or C:** Use the corresponding template from the agent_type preset, adjusted by signal preference above. Auto-generate `prompt_config.custom_rules` to describe the conditions in plain language.
+**How each answer changes the agent's behavior:**
+- **A vs B:** A waits for trend confirmation (fewer false entries); B enters earlier (catches more moves but more whipsaws)
+- **C:** Only enters against the crowd — needs extreme conditions to trigger, but captures big reversals
+- **D:** Strictest filter — may go days without trading but almost every trade is high quality
+- **E:** User describes their edge, AI translates to conditions
 
-**If user picks D or describes in their own words:** Use the Intent → trigger_conditions translation guide below to build custom conditions. **DO NOT** show JSON to user. Build it, then summarize back in plain language for confirmation.
+**If user picks A-D:** Use the corresponding template, generate `prompt_config.custom_rules` describing the logic in plain language. Adjust `trigger_conditions` thresholds based on the agent_type preset.
+
+**If user picks E or describes in their own words:** Use the Intent → trigger_conditions translation guide below to build custom conditions. **DO NOT** show JSON to user. Build it, then summarize back in plain language for confirmation.
 
 **If user says "defaults" / "use defaults":** Use preset from Q2. Still generate `custom_rules` describing what the preset does.
 
-**Follow-up (optional, for D or advanced users):**
+**Follow-up (always ask for C and E, optional for others):**
 > "When should the agent exit a position?"
-> e.g., "When smart money flips direction" / "When RSI hits overbought/oversold" / "When there's a liquidation cascade"
+> e.g., "When SM flips direction" / "When profit hits 2x risk" / "When funding reverses"
 
-**Q5 (optional — for advanced users): Additional strategy notes?** → `prompt_config`
+**Q5: Execution mode?** → `execution_mode`
+
+**How to ask:**
+> "How should the agent execute trades?"
+>
+> - **Auto** — Agent trades fully on its own. When signals meet your conditions, it opens/closes positions automatically. You get Telegram notifications after each trade. Best for: users who trust their config and want hands-off operation.
+> - **HITL (Human-in-the-Loop)** — Agent analyzes signals and creates **trade plans** (entry price, SL, TP, reasoning) but does NOT execute. You review each plan and **Approve or Reject** via Telegram or chat. Best for: users who want AI analysis but final say on every trade.
+
+| Mode | Agent does | You do | Speed | Control |
+|------|-----------|--------|-------|---------|
+| `auto` | Analyze + Execute | Monitor via notifications | Instant execution | Trust the config |
+| `hitl` | Analyze + Propose plan | Review → Approve/Reject each trade | Delayed (waits for you) | Full control |
+
+> **Recommend `hitl` for new agents** — lets the user observe the agent's decision quality before switching to `auto`.
+
+**Q6 (optional — for advanced users): Additional strategy notes?** → `prompt_config`
 
 If the user has more specific trading philosophy beyond Q4, collect it here. Examples:
 - "Contrarian: fade extreme funding rates"
@@ -994,7 +1020,7 @@ The prompt_config fields (AI generates from Q4 + Q5 answers):
 - `custom_rules`: Specific entry/exit rules matching trigger_conditions (from Q4)
 - `risk_management`: Risk rules matching Q3 risk profile
 
-**Q6: Withdrawal address?** → `withdrawal_addresses`
+**Q7: Withdrawal address?** → `withdrawal_addresses`
 **ALWAYS ask this before creating the agent.** Without it, funds can be withdrawn to ANY address.
 Ask: "What's your wallet address for withdrawals? This restricts where funds can be sent for security."
 - If user provides an address → set `--withdrawal-addresses 0x...`
