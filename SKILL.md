@@ -276,7 +276,6 @@ Returns **raw data only** — no computed scores. The agent framework computes s
     "oi_change_1h": 1.2, "oi_change_4h": 3.5, "oi_change_24h": 5.1,
     "long_ratio": 55.2, "short_ratio": 44.8,
     "liquidation_long_24h": 12000000, "liquidation_short_24h": 8000000,
-    "taker_buy_sell_ratio": 0.52
   }
 }
 ```
@@ -891,11 +890,10 @@ Real-time derivatives indicators via CoinGlass:
 | **Open Interest** | `market.oi_change_1h/4h/24h` | Rising OI + rising price = bullish. Rising OI + falling price = bearish |
 | **Long/Short Ratio** | `market.long_ratio`, `market.short_ratio` | >65% long = contrarian bearish. <35% long = contrarian bullish |
 | **Liquidations** | `market.liquidation_long_24h/4h/1h`, `market.liquidation_short_24h/4h/1h` | More short liquidations = short squeeze (bullish) |
-| **Taker Buy/Sell** | `market.taker_buy_sell_ratio` | >0.5 = more buying pressure. <0.5 = more selling |
 | **Volume** | `market.volume_24h` | High volume = stronger signal confidence |
 | **Price Change** | `market.price_change_24h` | Context for OI interpretation |
 
-Market score formula: Funding(25%) + OI Change(20%) + L/S Ratio(20%) + Liquidation(20%) + Taker(15%)
+Market score formula: Funding(30%) + OI Change(25%) + L/S Ratio(25%) + Liquidation(20%)
 
 **Composite Signal**: `composite = SM(sm_weight) + TA(ta_weight) + Market(market_weight)`
 - Default weights: SM=40%, TA=35%, Market=25% — **user can customize** via `signal_weights` config
@@ -975,7 +973,7 @@ Show 3 random examples from the 20 below, then ask user to describe their strate
 
 5. **Multi-Timeframe Sniper** — "Require 1d SuperTrend = 'buy' (macro trend) AND 4h RSI ≤45 (pullback) AND 1h SM long_ratio ≥60% (short-term catalyst). Only enter when all 3 timeframes align. Very patient, 1-2 trades per week."
 
-6. **Liquidation Cascade Catcher** — "Enter LONG after liquidation_short_4h spikes above $5M (short squeeze starting) AND taker_buy_sell_ratio >0.52 AND SM long_ratio ≥55%. Ride the cascade. Exit when liquidation flow reverses."
+6. **Liquidation Cascade Catcher** — "Enter LONG after liquidation_short_4h spikes above $5M (short squeeze starting) AND SM long_ratio ≥55% AND funding_current <0 (shorts paying). Ride the cascade. Exit when liquidation flow reverses."
 
 7. **OI Divergence Trader** — "LONG when oi_change_4h rising >2% BUT price flat or slightly down (accumulation) AND SM wallet_count increasing. SHORT when OI rising but price pumping with extreme funding >0.03% (late longs about to get rekt)."
 
@@ -993,7 +991,7 @@ Show 3 random examples from the 20 below, then ask user to describe their strate
 
 14. **ADX Trend Strength Filter** — "Only enter when ADX 4h ≥25 (strong trend confirmed). Direction from SuperTrend. Require SM consensus ≥55% same direction AND MACD histogram positive for LONG. Skip trades when ADX <20 (ranging market)."
 
-15. **Taker Ratio Momentum** — "Enter LONG when taker_buy_sell_ratio >0.53 (aggressive buying) AND SM long_ratio ≥55% AND RSI 1h <65. Enter SHORT when ratio <0.47 AND SM short_ratio ≥55%. Follow the aggressive flow."
+15. **OI Momentum Rider** — "Enter LONG when oi_change_4h >2% (money flowing in) AND SM long_ratio ≥55% AND RSI 1h <65. Enter SHORT when oi_change_4h <-2% AND SM short_ratio ≥55%. Follow the institutional flow."
 
 16. **Conservative Diamond Hands** — "Only BTC and ETH. Enter when SM consensus ≥70% with ≥7 wallets AND 1d SuperTrend confirmed AND RSI 1d between 35-60 (not extended). Hold through 5-10% drawdowns if SM consensus holds. Target 10%+ moves."
 
@@ -1083,7 +1081,6 @@ Ask: "What's your wallet address for withdrawals? This restricts where funds can
 | "OI dropping / money flowing out" | `market.oi_change_4h < 0` |
 | "short squeeze / short liquidations" | `market.liquidation_short_4h > 0` |
 | "long squeeze / long liquidations" | `market.liquidation_long_4h > 0` |
-| "more buying volume" | `market.taker_buy_sell_ratio > 0.51` (typical range: 0.48–0.52) |
 | "heavy shorting / crowd is short" | `market.short_ratio >= 60` |
 | "contrarian / fade the crowd" | `market.long_ratio >= 65` → SHORT, or `market.short_ratio >= 65` → LONG |
 
@@ -1132,7 +1129,6 @@ Ask: "What's your wallet address for withdrawals? This restricts where funds can
 
 | Metric | Typical live range | Loose | Moderate | Strict | Notes |
 |--------|-------------------|-------|----------|--------|-------|
-| `market.taker_buy_sell_ratio` | 0.48–0.52 | >0.505 / <0.495 | >0.51 / <0.49 | >0.52 / <0.48 | Very narrow band — most of time near 0.50 |
 | `market.funding_current` | -0.01 to +0.03 | ≥0.01 / ≤-0.005 | ≥0.02 / ≤-0.01 | ≥0.03 / ≤-0.03 | Positive=crowded longs (contrarian bearish) |
 | `market.oi_change_1h` | -3% to +3% | >0.5 / <-0.5 | >1 / <-1 | >2 / <-2 | Rising OI + rising price = bullish |
 | `market.oi_change_4h` | -5% to +5% | >1 / <-1 | >2 / <-2 | >3 / <-3 | Better for swing signals than 1h |
@@ -1144,7 +1140,6 @@ Ask: "What's your wallet address for withdrawals? This restricts where funds can
 | `market.price_change_24h` | -10% to +10% | — | — | — | Context for OI interpretation |
 
 > **Key observations from live data:**
-> - `taker_buy_sell_ratio` stays in a very narrow band (0.48–0.52). Use loose thresholds (>0.505) for more signals.
 > - SM ratios fluctuate widely by category — `stable` category has stronger directional bias than `high_win_rate`.
 > - ADX in ranging markets stays 10–20; only trending markets reach 25+. Use ≥18 as a practical minimum.
 > - `funding_current` is usually near 0.01; extreme values (>0.03 or <-0.03) are rare but very significant.
@@ -1154,11 +1149,11 @@ Ask: "What's your wallet address for withdrawals? This restricts where funds can
 
 | Strategy pattern | Entry conditions to generate |
 |-----------------|------------------------------|
-| **Momentum / trend following** | SM bullish (long_ratio≥55) AND RSI not overbought (≤65) AND OI rising AND taker ratio>0.51 |
+| **Momentum / trend following** | SM bullish (long_ratio≥55) AND RSI not overbought (≤65) AND OI rising (oi_change_4h>1) AND ADX≥20 |
 | **Mean reversion / bottom catching** | RSI oversold (≤30) AND funding negative (shorts crowded) AND short liquidations happening |
 | **SM divergence / whale following** | sm.long_ratio≥65 AND sm.wallet_count≥5 AND sm.4h.wallet_count≥3 AND OI flat (≤2%) |
 | **Contrarian / fade the crowd** | Long ratio crowded (≥65%) AND funding extreme (≥0.05) → SHORT. Short ratio crowded (≥65%) AND funding extreme (≤-0.05) → LONG |
-| **Breakout** | SuperTrend=buy AND ADX≥18 AND OI rising AND volume taker ratio>0.51 |
+| **Breakout** | SuperTrend=buy AND ADX≥18 AND OI rising (oi_change_4h>1) AND volume rising |
 | **Scalping / quick trades** | sm.long_ratio≥50 AND sm.1h.wallet_count≥1 AND RSI 30-70 AND MACD histogram aligns with direction |
 
 **After collecting user intent, build trigger_conditions JSON:**
@@ -1173,7 +1168,7 @@ Available fields:
 - **SM** (aggregated across all timeframes, values 0-100): `sm.long_ratio`, `sm.short_ratio`, `sm.wallet_count`, `sm.long_count`, `sm.short_count`, `sm.long_volume`, `sm.short_volume`
 - **SM per-timeframe** (tf: 1h, 4h, 24h): `sm.{tf}.long_count`, `sm.{tf}.short_count`, `sm.{tf}.wallet_count`, `sm.{tf}.long_volume`, `sm.{tf}.short_volume`
 - **TA** (per tf: 15m, 1h, 4h, 1d): `ta.{tf}.rsi`, `ta.{tf}.macd_hist`, `ta.{tf}.stoch_k`, `ta.{tf}.stoch_d`, `ta.{tf}.supertrend_advice`, `ta.{tf}.adx`, `ta.{tf}.plus_di`, `ta.{tf}.minus_di`, `ta.{tf}.bb_upper`, `ta.{tf}.bb_middle`, `ta.{tf}.bb_lower`, `ta.{tf}.ema_9`, `ta.{tf}.ema_21`, `ta.{tf}.sma_50`, `ta.{tf}.sma_200`, `ta.{tf}.atr`, `ta.{tf}.cci`, `ta.{tf}.mfi`, `ta.{tf}.obv`, `ta.{tf}.vwap`
-- **Market**: `market.funding_current`, `market.oi_change_1h`, `market.oi_change_4h`, `market.oi_change_24h`, `market.long_ratio`, `market.short_ratio`, `market.liquidation_long_24h/4h/1h`, `market.liquidation_short_24h/4h/1h`, `market.taker_buy_sell_ratio`, `market.volume_24h`, `market.price_change_24h`
+- **Market**: `market.funding_current`, `market.oi_change_1h`, `market.oi_change_4h`, `market.oi_change_24h`, `market.long_ratio`, `market.short_ratio`, `market.liquidation_long_24h/4h/1h`, `market.liquidation_short_24h/4h/1h`, `market.volume_24h`, `market.price_change_24h`
 - **Compare**: `>=`, `<=`, `>`, `<`, `==`, `!=`  |  **Logic**: `and`, `or`
 
 > **Note:** `sm.long_ratio` and `sm.short_ratio` are percentages (0-100), NOT decimals. E.g., 65% long consensus → `sm.long_ratio >= 65` (not 0.65). Direction detection uses ratios: "SM is bullish" = `sm.long_ratio >= 60`, "SM flipped SHORT" = `sm.short_ratio >= 60`.
