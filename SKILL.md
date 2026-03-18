@@ -200,11 +200,12 @@ Server auto-generates `trigger_conditions`, `prompt_config`, `trading_risk` if n
 💰 Deposit USDC to your agent
 
 📋 Address: `{deposit_address}` (Arbitrum One only)
-🔗 Verify on Arbiscan: {verify_address_url}
 
 ✅ SAFEST — scan QR or click payment link to auto-fill your wallet:
 🔲 QR Code: {qr_code_url}
 💳 Payment link: {payment_link}
+
+🔗 Verify on Arbiscan: {verify_address_url}
 
 ⚠️ ONLY send USDC on Arbitrum (chain 42161). Wrong chain/token = lost funds.
 Gas fees sponsored by Zonein — no ETH needed.
