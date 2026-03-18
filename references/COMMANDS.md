@@ -135,6 +135,7 @@ No parameters. Returns stats + top signals across all 4 asset types.
 | Param | Type | Required | Description |
 |-------|------|----------|-------------|
 | `symbol` | str | yes | Coin symbol: BTC, ETH, SOL, or HIP-3 format `dex:COIN` (e.g. `xyz:TSLA`) |
+| `--categories` | str | no | Comma-separated SM wallet categories to filter |
 
 Returns raw SM (per-timeframe), TA (multi-timeframe indicators), and Market (derivatives) data in one call.
 
@@ -241,6 +242,7 @@ See the **Agent Creation Flow** in SKILL.md for the full conversational workflow
 | `--risk-reward` | str | 1:2 | Risk:reward ratio |
 | `--min-confidence` | float | 0.8 | Min LLM confidence (0–1) |
 | `--min-consensus` | float | 0.7 | Min SM consensus (0–1) |
+| `--max-trades-per-day` | int | 3 | Max trades per day |
 | `--withdrawal-addresses` | str | none | Whitelisted 0x addresses (comma-separated) |
 
 ### `agent-update` — Update agent configuration
@@ -249,16 +251,20 @@ See the **Agent Creation Flow** in SKILL.md for the full conversational workflow
 |-------|------|-------------|
 | `agent_id` | str | Agent ID (positional) |
 | `--name` | str | New name |
+| `--description` | str | New description |
 | `--assets` | str | Comma-separated assets |
 | `--categories` | str | Comma-separated categories |
 | `--leverage` | int | Max leverage |
+| `--execution-mode` | str | `auto` or `hitl` |
 | `--prompt-config` | json | `{trading_strategy, custom_rules, risk_management}` |
+| `--trading-strategy` | str | Overall trading approach for LLM (shorthand for prompt_config.trading_strategy) |
+| `--custom-rules` | str | Specific entry/exit rules for LLM (shorthand for prompt_config.custom_rules) |
+| `--risk-management` | str | Risk management rules for LLM (shorthand for prompt_config.risk_management) |
 | `--trigger-conditions` | json | Entry/exit triggers |
 | `--trading-risk` | json | Risk parameters |
 | `--signal-weights` | json | `{sm, ta, market}` summing to 100 |
 | `--strength-thresholds` | json | Entry/exit thresholds per asset |
 | `--timeframe-weights` | json | Timeframe weight distribution |
-| `--execution-mode` | str | `auto` or `hitl` |
 | `--withdrawal-addresses` | str | Withdrawal whitelist |
 
 ### `agent-deploy` — Validate config and enable trading
@@ -266,12 +272,22 @@ See the **Agent Creation Flow** in SKILL.md for the full conversational workflow
 | Param | Type | Required | Description |
 |-------|------|----------|-------------|
 | `agent_id` | str | yes | Agent to deploy |
+| `--confirm` | flag | yes | **Financial gate** — required to execute |
 
-### `agent-enable` / `agent-disable` / `agent-pause` — Lifecycle control
+### `agent-enable` — Enable agent for live trading
 
 | Param | Type | Required | Description |
 |-------|------|----------|-------------|
 | `agent_id` | str | yes | Agent ID |
+| `--confirm` | flag | yes | **Financial gate** — required to execute |
+
+### `agent-disable` / `agent-pause` — Stop trading
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `agent_id` | str | yes | Agent ID |
+
+No `--confirm` needed — these are safety actions that stop trading.
 
 ### `agent-delete` — Delete agent (soft delete)
 
@@ -294,6 +310,14 @@ Returns: `name`, `status`, `total_pnl`, `roi`, `win_rate`, `profit_factor`, `con
 | `agent_id` | str | yes | Agent ID |
 
 Returns `performance_metrics` + `advanced_metrics` (win_rate, sharpe, drawdown, etc).
+
+### `agent-performance` — Advanced performance metrics (via AgentsArena)
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `agent_id` | str | yes | Agent ID |
+
+Returns detailed performance breakdown with advanced metrics (Sharpe, Sortino, drawdown curves, etc).
 
 ### `agent-trades` — Trade history (via AgentsArena)
 
@@ -349,6 +373,7 @@ Returns:
 | Param | Type | Required | Description |
 |-------|------|----------|-------------|
 | `agent_id` | str | yes | Agent ID |
+| `--confirm` | flag | yes | **Financial gate** — required to execute |
 
 **Gas fees sponsored by Zonein** — no ETH needed. Returns `tx_hash` and `amount` bridged.
 
@@ -365,6 +390,7 @@ Returns:
 | `--take-profit` | float | no | Take profit price |
 | `--order-type` | str | no (market) | `market` or `limit` |
 | `--limit-price` | float | no | Required for limit orders |
+| `--confirm` | flag | yes | **Financial gate** — required to execute |
 
 ### `agent-close` — Close a position (executes immediately)
 
@@ -372,6 +398,7 @@ Returns:
 |-------|------|----------|-------------|
 | `agent_id` | str | yes | Agent ID |
 | `--coin` | str | yes | Coin to close |
+| `--confirm` | flag | yes | **Financial gate** — required to execute |
 
 ### `agent-update-sl-tp` — Update stop-loss / take-profit
 
@@ -381,6 +408,7 @@ Returns:
 | `--coin` | str | yes | Token symbol |
 | `--stop-loss` | float | no | New stop loss price |
 | `--take-profit` | float | no | New take profit price |
+| `--confirm` | flag | yes | **Financial gate** — required to execute |
 
 ### `agent-orders` — Manual order history
 
@@ -395,6 +423,7 @@ Returns:
 |-------|------|----------|-------------|
 | `agent_id` | str | yes | Agent ID |
 | `--to` | str | yes | Destination 0x... wallet on Arbitrum |
+| `--confirm` | flag | yes | **Financial gate** — required to execute |
 
 Agent must be **disabled** before withdrawing.
 
@@ -487,55 +516,26 @@ No parameters.
 | `agent_id` | str | yes | Agent ID |
 | `plan_id` | str | yes | Plan ID |
 
-### `agent-approve` — Approve a pending trade plan (executes immediately)
-
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `agent_id` | str | yes | Agent ID |
-| `plan_id` | str | yes | Plan ID |
-| `--notes` | str | no | Approval notes |
-| `--edit-sl` | float | no | Override stop loss % |
-| `--edit-tp` | float | no | Override take profit % |
-| `--edit-size` | float | no | Override position size USD |
-
-**Requires `--confirm`.**
-
-### `agent-reject` — Reject a pending trade plan
-
-Triggers a 30-minute cooldown for the same token.
-
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `agent_id` | str | yes | Agent ID |
-| `plan_id` | str | yes | Plan ID |
-| `--notes` | str | no | Rejection reason |
-
-No `--confirm` needed for reject.
-
-### `agent-pending-plans` — Check pending trade plans
-
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `owner_id` | str | yes | User ID (auto-filled) |
-| `agent_id` | str | no | Filter by agent |
-
 ### `agent-plan-action` — Act on a pending trade plan
 
+Unified command for approve/reject/edit/paper actions on trade plans.
+
 | Param | Type | Required | Description |
 |-------|------|----------|-------------|
+| `agent_id` | str | yes | Agent ID |
 | `plan_id` | str | yes | Trade plan ID |
-| `owner_id` | str | yes | User ID |
 | `action` | str | yes | `approve`, `reject`, `edit`, `paper` |
-| `notes` | str | no | User reasoning |
-| `edits` | json | no | For edit: `{entry, stop_loss, take_profit, size_usd, leverage}` |
+| `--notes` | str | no | User reasoning |
+| `--edits` | json | no | For edit: `{entry, stop_loss, take_profit, size_usd, leverage}` |
+
+**`approve` and `edit` require `--confirm`.** `reject` does NOT need `--confirm`. Reject triggers a 30-minute cooldown for the same token.
 
 ### `agent-plan-history` — Past trade plans
 
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `agent_id` | str | yes | Agent ID |
-| `owner_id` | str | yes | User ID |
-| `limit` | int | no | Max results (default 20) |
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `agent_id` | str | required | Agent ID |
+| `--limit` | int | 20 | Max results |
 
 ---
 

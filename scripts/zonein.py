@@ -139,6 +139,15 @@ def get_api_key():
     return key
 
 
+def _parse_json_arg(value: str, param_name: str):
+    """Parse a JSON string from CLI argument. Exits with clean error on invalid JSON."""
+    try:
+        return json.loads(value)
+    except (json.JSONDecodeError, TypeError) as e:
+        print(json.dumps({"error": f"Invalid JSON for {param_name}", "detail": str(e)}))
+        sys.exit(1)
+
+
 def _require_confirm(args, action_desc: str):
     """Programmatic confirmation gate for financial commands.
     Refuses to execute unless --confirm is explicitly passed.
@@ -362,17 +371,17 @@ def cmd_agent_create(args):
     if args.min_consensus:
         body.setdefault("trading_preferences", {})["min_smart_money_consensus"] = args.min_consensus
     if args.strength_thresholds:
-        body["strength_thresholds"] = json.loads(args.strength_thresholds)
+        body["strength_thresholds"] = _parse_json_arg(args.strength_thresholds, "--strength-thresholds")
     if args.timeframe_weights:
-        body["timeframe_weights"] = json.loads(args.timeframe_weights)
+        body["timeframe_weights"] = _parse_json_arg(args.timeframe_weights, "--timeframe-weights")
     if args.signal_weights:
-        body["signal_weights"] = json.loads(args.signal_weights)
+        body["signal_weights"] = _parse_json_arg(args.signal_weights, "--signal-weights")
     if args.trigger_conditions:
-        body["trigger_conditions"] = json.loads(args.trigger_conditions)
+        body["trigger_conditions"] = _parse_json_arg(args.trigger_conditions, "--trigger-conditions")
     if args.trading_risk:
-        body["trading_risk"] = json.loads(args.trading_risk)
+        body["trading_risk"] = _parse_json_arg(args.trading_risk, "--trading-risk")
     if args.prompt_config:
-        body["prompt_config"] = json.loads(args.prompt_config)
+        body["prompt_config"] = _parse_json_arg(args.prompt_config, "--prompt-config")
     if args.withdrawal_addresses:
         body["withdrawal_addresses"] = [a.strip() for a in args.withdrawal_addresses.split(",")]
     data = api_post("/agents/", body)
@@ -438,7 +447,7 @@ def cmd_agent_update(args):
     if args.execution_mode:
         body["execution_mode"] = args.execution_mode
     if args.prompt_config:
-        body["prompt_config"] = json.loads(args.prompt_config)
+        body["prompt_config"] = _parse_json_arg(args.prompt_config, "--prompt-config")
     if args.trading_strategy:
         body.setdefault("prompt_config", {})["trading_strategy"] = args.trading_strategy
     if args.custom_rules:
@@ -446,15 +455,15 @@ def cmd_agent_update(args):
     if args.risk_management:
         body.setdefault("prompt_config", {})["risk_management"] = args.risk_management
     if args.trigger_conditions:
-        body["trigger_conditions"] = json.loads(args.trigger_conditions)
+        body["trigger_conditions"] = _parse_json_arg(args.trigger_conditions, "--trigger-conditions")
     if args.trading_risk:
-        body["trading_risk"] = json.loads(args.trading_risk)
+        body["trading_risk"] = _parse_json_arg(args.trading_risk, "--trading-risk")
     if args.signal_weights:
-        body["signal_weights"] = json.loads(args.signal_weights)
+        body["signal_weights"] = _parse_json_arg(args.signal_weights, "--signal-weights")
     if args.strength_thresholds:
-        body["strength_thresholds"] = json.loads(args.strength_thresholds)
+        body["strength_thresholds"] = _parse_json_arg(args.strength_thresholds, "--strength-thresholds")
     if args.timeframe_weights:
-        body["timeframe_weights"] = json.loads(args.timeframe_weights)
+        body["timeframe_weights"] = _parse_json_arg(args.timeframe_weights, "--timeframe-weights")
     if args.withdrawal_addresses:
         body["withdrawal_addresses"] = [a.strip() for a in args.withdrawal_addresses.split(",")]
     if not body:
@@ -591,7 +600,6 @@ def cmd_agent_close(args):
     body = {
         "action": "close",
         "coin": args.coin,
-        "direction": "LONG",
     }
     data = api_post(f"/agents/{args.agent_id}/orders", body)
     _output(data)
@@ -765,7 +773,7 @@ def cmd_agent_plan_action(args):
     if args.notes:
         body["notes"] = args.notes
     if args.edits:
-        body["edits"] = json.loads(args.edits)
+        body["edits"] = _parse_json_arg(args.edits, "--edits")
     data = api_post(f"/agents/{args.agent_id}/plans/{args.plan_id}/action", body)
     _output(data)
 

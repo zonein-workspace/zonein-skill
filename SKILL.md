@@ -8,7 +8,7 @@ description: |
   Capabilities: live signals, trader tracking, AI dashboard, agent creation, HITL trade plans, backtesting.
 homepage: https://zonein.xyz
 compatibility: Requires python3. OpenClaw workspace with ZONEIN_API_KEY configured.
-metadata: {"clawdbot":{"emoji":"🧠","requires":{"bins":["python3"],"env":["ZONEIN_API_KEY"]},"primaryEnv":"ZONEIN_API_KEY","files":["scripts/*"],"installer":{"instructions":"1. Go to https://app.zonein.xyz\n2. Log in with your refcode\n3. Click 'Get API Key' button\n4. Copy the key and paste it below"}}}
+metadata: {"openclaw":{"emoji":"🧠","requires":{"bins":["python3"],"env":["ZONEIN_API_KEY"]},"primaryEnv":"ZONEIN_API_KEY","files":["scripts/*","references/*"],"installer":{"instructions":"1. Go to https://app.zonein.xyz\n2. Log in with your refcode\n3. Click 'Get API Key' button\n4. Copy the key and paste it below"}}}
 ---
 
 # Zonein: Smart Money Intelligence & Trading Agents
@@ -42,13 +42,16 @@ For full field lists and thresholds, see [Data Sources Reference](references/DAT
 ```
 skills/zonein/
 ├── SKILL.md                         # This file — core instructions (always loaded)
-├── scripts/zonein.py                # CLI tool — ALL commands go through this
+├── scripts/
+│   └── zonein.py                    # CLI tool — ALL commands go through this
 └── references/
     ├── COMMANDS.md                  # Detailed command parameter tables
     ├── DATA_SOURCES.md              # SM, TA, Market field details + categories
     ├── TRIGGER_CONDITIONS.md        # TC schema, intent→condition translation, examples
     ├── AGENT_CONFIG.md              # Agent types, DSL config, risk profiles, presets
-    └── WORKFLOWS.md                 # Position mgmt, market overview, HITL tracker, strategy examples
+    ├── WORKFLOWS.md                 # Position mgmt, market overview, HITL tracker, strategy examples
+    ├── schema.md                    # API response JSON schemas
+    └── strategy.md                  # Signal scoring, risk rules, trading flow
 ```
 
 ## Setup
@@ -93,7 +96,7 @@ All commands use: `python3 skills/zonein/scripts/zonein.py <command> [params]`
 - **🚨 Wallet addresses (0x...) and Agent IDs (agent_...) are SACRED DATA.** Copy character-for-character from tool output. NEVER recall or reconstruct from memory. One wrong character = permanent fund loss.
 
 **Read-only (safe to auto-run):**
-`signals`, `leaderboard`, `consensus`, `trader`, `pm-top`, `smart-bettors`, `trader-positions`, `trader-trades`, `perp-signals`, `perp-traders`, `perp-top`, `perp-categories`, `perp-category-stats`, `perp-coins`, `perp-trader`, `agents`, `agent-get`, `agent-overview`, `agent-stats`, `agent-trades`, `agent-vault`, `agent-templates`, `agent-assets`, `agent-categories`, `agent-balance`, `agent-positions`, `agent-deposit`, `agent-orders`, `agent-backtests`, `agent-check`, `agent-plans`, `agent-plan-detail`, `agent-plan-history`, `agent-pending-plans`, `agent-signal`, `dashboard`, `dashboard-latest`, `dashboard-asset`, `derivatives`, `fear-greed`, `derivatives-pairs`, `ta`, `ta-single`, `liquidation-map`, `hip3-dexs`, `hip3-assets`, `telegram-config`, `status`
+`signals`, `leaderboard`, `consensus`, `trader`, `pm-top`, `smart-bettors`, `trader-positions`, `trader-trades`, `perp-signals`, `perp-traders`, `perp-top`, `perp-categories`, `perp-category-stats`, `perp-coins`, `perp-trader`, `agents`, `agent-get`, `agent-overview`, `agent-performance`, `agent-stats`, `agent-trades`, `agent-vault`, `agent-templates`, `agent-assets`, `agent-categories`, `agent-balance`, `agent-positions`, `agent-deposit`, `agent-orders`, `agent-backtests`, `agent-check`, `agent-plans`, `agent-plan-detail`, `agent-plan-history`, `agent-signal`, `dashboard`, `dashboard-latest`, `dashboard-asset`, `derivatives`, `fear-greed`, `derivatives-pairs`, `ta`, `ta-single`, `liquidation-map`, `hip3-dexs`, `hip3-assets`, `telegram-config`, `status`
 
 **State-changing (ask user first):**
 `agent-create`, `agent-update`, `agent-disable`, `agent-pause`, `agent-delete`, `telegram-setup-init`, `telegram-setup`, `telegram-disable`

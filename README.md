@@ -1,14 +1,21 @@
-# Zonein: Whale hunting for trading agents on Hyperliquid & Polymarket
+# Zonein: Smart Money Intelligence & Trading Agents
 
-An [OpenClaw](https://openclaw.io) skill that fetches live trading intelligence from **Polymarket** and **HyperLiquid** smart money wallets. Track top traders (>75% win-rate), follow whale movements, and create automated trading agents — all from your AI assistant.
+An [OpenClaw](https://openclaw.io) skill (v2.3.0) that tracks **500+ categorized whale wallets** on **Hyperliquid** and **Polymarket**, delivers real-time composite AI signals (Smart Money + Technical Analysis + Derivatives), and lets you create automated trading agents — all from your AI assistant.
 
 ## Features
 
-- **Polymarket Signals** — Smart money trading signals, leaderboards, and consensus across politics, crypto, sports, and more
-- **HyperLiquid Perp Signals** — Whale positions, long/short sentiment, and top performer rankings
-- **Wallet Tracking** — Look up any trader's profile, PnL, and open positions
-- **Trading Agents** — Create, configure, and manage automated Perp trading agents on HyperLiquid with human-in-the-loop approval (Prediction Market agents not yet supported)
-- **Backtesting** — Run historical simulations against real smart money signals and OHLC data
+- **Smart Money Signals** — Track top traders (>75% win-rate) across Polymarket predictions and HyperLiquid perpetuals
+- **AI Dashboard** — Composite signals combining SM (40%), TA (35%), and Market data (25%) across perp, spot, HIP-3, and prediction markets
+- **Technical Analysis** — Multi-timeframe TA indicators (RSI, MACD, SuperTrend, Bollinger Bands, etc.) via TAAPI.io
+- **Derivatives Data** — Open interest, funding rates, long/short ratios, liquidation maps via CoinGlass
+- **Trading Agents** — Create, configure, deploy, and monitor automated Perp agents on HyperLiquid with customizable trigger conditions
+- **Human-in-the-Loop (HITL)** — Agent creates trade plans for your approval via chat or Telegram
+- **HIP-3 Trading** — Stocks (TSLA, NVDA), commodities (GOLD), indices on Hyperliquid DEXs
+- **Backtesting** — Run historical simulations with streaming progress and performance reports
+- **Telegram Notifications** — Instant trade plan alerts with one-tap approve/reject buttons
+- **Wallet Tracking** — Look up any trader's profile, PnL, categories, and open positions
+
+> **Note:** Polymarket data reading works. PM trading agents are not yet supported.
 
 ## Prerequisites
 
@@ -17,53 +24,52 @@ An [OpenClaw](https://openclaw.io) skill that fetches live trading intelligence 
 
 ## Setup
 
-1. Go to [app.zonein.xyz/pm](https://app.zonein.xyz/pm) and log in (referral code required)
-2. Click **"Get API Key"** and copy your key
-3. Set the key via one of:
-   - **OpenClaw Gateway Dashboard** → Skills → Enable "zonein" → paste key
+1. Go to [app.zonein.xyz](https://app.zonein.xyz) → Log in → Click **"Get API Key"**
+2. Set the key via one of:
+   - **OpenClaw Gateway Dashboard** → `/skills` → Enable **zonein** → paste key
    - Environment variable: `export ZONEIN_API_KEY="zn_your_key_here"`
    - Config file: `~/.openclaw/openclaw.json` under `skills.entries.zonein.apiKey`
 
 ## Usage
 
-All commands are run through the bundled Python script:
+All commands run through the bundled CLI script:
 
 ```bash
-python3 scripts/zonein/scripts/zonein.py <command> [options]
+python3 skills/zonein/scripts/zonein.py <command> [options]
 ```
 
-### Key Commands
+### Commands Overview
 
-| Command | Description |
-|---------|-------------|
-| `signals` | Polymarket smart money signals |
-| `perp-signals` | HyperLiquid perp signals |
-| `leaderboard` | Top PM traders by PnL |
-| `perp-top` | Top perp performers |
-| `perp-coins` | Coin long/short sentiment |
-| `trader <wallet>` | PM trader profile |
-| `perp-trader <address>` | HyperLiquid trader profile |
-| `agents` | List your trading agents |
-| `agent-create` | Create a new trading agent |
-| `agent-stats <id>` | Agent performance stats |
-| `agent-backtest <id>` | Run historical backtest |
-| `status` | Check API key status |
+| Category | Commands |
+|----------|----------|
+| **Polymarket** | `signals`, `leaderboard`, `consensus`, `trader`, `pm-top`, `smart-bettors`, `trader-positions`, `trader-trades` |
+| **Perp (HyperLiquid)** | `perp-signals`, `perp-traders`, `perp-top`, `perp-coins`, `perp-trader`, `perp-categories`, `perp-category-stats` |
+| **AI Dashboard** | `dashboard`, `dashboard-latest`, `dashboard-asset`, `agent-signal` |
+| **Technical Analysis** | `ta`, `ta-single` |
+| **Derivatives** | `derivatives`, `fear-greed`, `derivatives-pairs`, `liquidation-map` |
+| **Agent Management** | `agents`, `agent-get`, `agent-create`, `agent-update`, `agent-deploy`, `agent-enable`, `agent-disable`, `agent-pause`, `agent-delete` |
+| **Agent Trading** | `agent-open`, `agent-close`, `agent-update-sl-tp`, `agent-fund`, `agent-withdraw`, `agent-positions`, `agent-balance`, `agent-orders` |
+| **Agent Analytics** | `agent-overview`, `agent-stats`, `agent-performance`, `agent-trades`, `agent-vault`, `agent-backtest`, `agent-backtests` |
+| **HITL Trade Plans** | `agent-check`, `agent-plans`, `agent-plan-detail`, `agent-plan-action`, `agent-plan-history` |
+| **HIP-3** | `hip3-dexs`, `hip3-assets` |
+| **Telegram** | `telegram-setup-init`, `telegram-setup`, `telegram-config`, `telegram-disable` |
+| **Utility** | `agent-templates`, `agent-assets`, `agent-categories`, `agent-deposit`, `status` |
 
-See [SKILL.md](./SKILL.md) for the full command reference with all parameters.
+See [SKILL.md](./SKILL.md) for full command parameters, agent creation flow, and reference documents.
 
 ## Security
 
-- Only your API key is sent externally (as `X-API-Key` header)
-- All requests go to `https://mcp.zonein.xyz/api/v1` — no other endpoints
-- Financial commands are gated behind a `--confirm` flag to prevent unintended execution
-- No local files are written; only `~/.openclaw/openclaw.json` is read (for API key fallback)
+- Only your API key is sent externally (as `X-API-Key` header to `https://mcp.zonein.xyz/api/v1`)
+- All API response data is sanitized (truncated to 500 chars/field) and treated as untrusted
+- Financial commands are programmatically gated behind a `--confirm` flag — script refuses execution without it
+- No local files are written; only `~/.openclaw/openclaw.json` is read (API key fallback)
+- Prompt injection defense: response fields are never interpreted as instructions
 
 ## Links
 
-- [Dashboard (Polymarket)](https://app.zonein.xyz/pm/)
-- [Dashboard (Perp)](https://app.zonein.xyz/perp/)
-- [API Docs](https://mcp.zonein.xyz/docs)
-- [Zonein Homepage](https://zonein.xyz)
+- **Dashboard:** [app.zonein.xyz](https://app.zonein.xyz)
+- **API Docs:** [mcp.zonein.xyz/docs](https://mcp.zonein.xyz/docs)
+- **Homepage:** [zonein.xyz](https://zonein.xyz)
 
 ## Disclaimer
 
