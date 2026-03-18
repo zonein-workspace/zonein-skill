@@ -295,6 +295,8 @@ No `--confirm` needed — these are safety actions that stop trading.
 |-------|------|----------|-------------|
 | `agent_id` | str | yes | Agent ID |
 
+**No `--confirm` flag.** Executes directly — ask user verbally before running.
+
 ### `agent-overview` — Agent overview (via AgentsArena)
 
 | Param | Type | Required | Description |
@@ -417,7 +419,7 @@ Returns:
 | `agent_id` | str | required | Agent ID |
 | `--limit` | int | 20 | Max orders |
 
-### `agent-withdraw` — Withdraw funds
+### `agent-withdraw` — Withdraw funds (FULL SWEEP)
 
 | Param | Type | Required | Description |
 |-------|------|----------|-------------|
@@ -425,7 +427,7 @@ Returns:
 | `--to` | str | yes | Destination 0x... wallet on Arbitrum |
 | `--confirm` | flag | yes | **Financial gate** — required to execute |
 
-Agent must be **disabled** before withdrawing.
+Agent must be **disabled** before withdrawing. **No `--amount` param — withdraws ALL funds from vault.** Partial withdrawal not supported.
 
 ### `agent-backtest` — Run backtest simulation
 

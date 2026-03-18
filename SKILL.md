@@ -2,16 +2,31 @@
 name: zonein
 version: 2.3.0
 description: |
-  Track and analyze top traders with >75% win-rate on Hyperliquid and Polymarket via Zonein API.
+  Trading OS for smarter agents on Hyperliquid & Polymarket. Create, backtest, and deploy autonomous
+  trading agents with one skill install. Real-time smart money signals from 500+ profiled wallets,
+  multi-timeframe TA, derivatives flow, composite AI signals, and a self-learning engine.
+  Supports: Hyperliquid perps, spot, HIP-3 (stocks, commodities, indices), and Polymarket.
   Use when: user asks about smart money, whale activity, trading signals, crypto market analysis,
   creating/managing trading agents, perpetual futures, prediction markets, or HIP-3 stock trading.
-  Capabilities: live signals, trader tracking, AI dashboard, agent creation, HITL trade plans, backtesting.
+  30+ commands. One API key. From zero to live trading agent in one conversation.
 homepage: https://zonein.xyz
 compatibility: Requires python3. OpenClaw workspace with ZONEIN_API_KEY configured.
 metadata: {"openclaw":{"emoji":"🧠","requires":{"bins":["python3"],"env":["ZONEIN_API_KEY"]},"primaryEnv":"ZONEIN_API_KEY","files":["scripts/*","references/*"],"installer":{"instructions":"1. Go to https://app.zonein.xyz\n2. Log in with your refcode\n3. Click 'Get API Key' button\n4. Copy the key and paste it below"}}}
 ---
 
-# Zonein: Smart Money Intelligence & Trading Agents
+# Zonein: Trading OS for Smarter Agents on Hyperliquid & Polymarket
+
+Create, backtest, and deploy autonomous trading agents with one skill install.
+
+ZoneIn gives your OpenClaw agent a full trading stack - real-time smart money
+signals from 500+ profiled wallets, multi-timeframe technical analysis, derivatives
+flow, composite AI signals, and a self-learning engine. Agents get smarter after
+every trade.
+
+Supports: Hyperliquid perps, spot, HIP-3 (US stocks like TSLA/NVDA, commodities
+like GOLD, indices like US500), and Polymarket prediction markets.
+
+30+ commands. One API key. From zero to live trading agent in one conversation.
 
 ## When to Use This Skill
 
@@ -98,8 +113,10 @@ All commands use: `python3 skills/zonein/scripts/zonein.py <command> [params]`
 **Read-only (safe to auto-run):**
 `signals`, `leaderboard`, `consensus`, `trader`, `pm-top`, `smart-bettors`, `trader-positions`, `trader-trades`, `perp-signals`, `perp-traders`, `perp-top`, `perp-categories`, `perp-category-stats`, `perp-coins`, `perp-trader`, `agents`, `agent-get`, `agent-overview`, `agent-performance`, `agent-stats`, `agent-trades`, `agent-vault`, `agent-templates`, `agent-assets`, `agent-categories`, `agent-balance`, `agent-positions`, `agent-deposit`, `agent-orders`, `agent-backtests`, `agent-check`, `agent-plans`, `agent-plan-detail`, `agent-plan-history`, `agent-signal`, `dashboard`, `dashboard-latest`, `dashboard-asset`, `derivatives`, `fear-greed`, `derivatives-pairs`, `ta`, `ta-single`, `liquidation-map`, `hip3-dexs`, `hip3-assets`, `telegram-config`, `status`
 
-**State-changing (ask user first):**
+**State-changing (ask user first — NO `--confirm` flag):**
 `agent-create`, `agent-update`, `agent-disable`, `agent-pause`, `agent-delete`, `telegram-setup-init`, `telegram-setup`, `telegram-disable`
+
+⚠️ State-changing commands have **NO `--confirm` gate** — they execute directly after user says OK. Do NOT add `--confirm` to these.
 
 **Financial (require `--confirm` — script refuses without it):**
 `agent-fund`, `agent-open`, `agent-close`, `agent-update-sl-tp`, `agent-withdraw`, `agent-enable`, `agent-deploy`, `agent-backtest`, `agent-plan-action approve`
@@ -186,6 +203,10 @@ Server auto-generates `trigger_conditions`, `prompt_config`, `trading_risk` if n
 - **NEVER** tell user to "go to app.zonein.xyz to deploy" — that feature does not exist
 - **NEVER** blame CLI or backend — all parameters are supported via `agent-update`
 
+**`agent-update` supports FULL config changes** (same fields as `agent-create`):
+`--prompt-config`, `--trigger-conditions`, `--trading-risk`, `--signal-weights`, `--strength-thresholds`, `--timeframe-weights`, `--assets`, `--categories`, `--leverage`, `--execution-mode`, `--withdrawal-addresses`, plus shorthand: `--trading-strategy`, `--custom-rules`, `--risk-management`.
+NEVER tell user to delete and recreate an agent — use `agent-update` to change any config.
+
 3. **Telegram:** Run `telegram-config`. If not connected, recommend setup — essential for HITL agents. See [Workflows](references/WORKFLOWS.md) for setup flow.
 
 ### Step 4: Fund the Agent
@@ -253,6 +274,8 @@ HIP-3 = builder-deployed perpetuals on Hyperliquid — stocks (TSLA, NVDA), comm
 - **HITL plans expire after 2 hours.** If user doesn't respond, plan auto-expires.
 - **app.zonein.xyz is view-only.** No deploy, config edit, or fund buttons. ALL agent operations go through CLI.
 - **Position sizes are in USD notional.** Double-check the amount with user before executing. $1000 ≠ $100.
+- **`agent-withdraw` is full sweep.** No `--amount` param — it withdraws ALL funds from the vault. Cannot withdraw partial amounts. Agent must be disabled first.
+- **`agent-delete` has NO `--confirm` gate.** It executes directly via DELETE API. Ask user for confirmation verbally before running — the script has no programmatic safety gate for this.
 
 ---
 
@@ -287,6 +310,9 @@ HIP-3 = builder-deployed perpetuals on Hyperliquid — stocks (TSLA, NVDA), comm
 - All hex strings are **"no-creativity zones"** — one wrong character = lost funds.
 - **NEVER invent UI features.** app.zonein.xyz has no deploy, config, or fund buttons.
 - **NEVER blame CLI or backend.** Read error messages and fix. CLI supports all parameters.
+- **NEVER claim commands are missing or removed.** The command list above is COMPLETE. All 30+ commands exist in `zonein.py`: backtest, TA, derivatives, liquidation-map, dashboard, etc. If a command fails, check the error — do not assume it was removed.
+- **NEVER claim `agent-update` is limited.** It supports `--prompt-config`, `--trigger-conditions`, `--trading-risk`, and all other config fields. Do NOT tell users to delete and recreate agents.
+- **NEVER add `--confirm` to commands that don't have it.** Only the Financial category commands use `--confirm`. State-changing commands (`agent-create`, `agent-update`, `agent-delete`, etc.) do NOT have `--confirm`.
 
 By using this skill, your API key and query parameters are sent to https://mcp.zonein.xyz.
 
