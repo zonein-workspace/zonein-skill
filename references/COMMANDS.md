@@ -434,7 +434,7 @@ Agent must be **disabled** before withdrawing. **No `--amount` param — withdra
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
 | `agent_id` | str | required | Agent ID |
-| `--symbol` | str | BTC | Coin: BTC, ETH, SOL, HYPE |
+| `--symbol` | str | BTC | Coin: Standard perps (`BTC`, `ETH`) AND ALL HIP-3 assets (`xyz:TSLA`, `cash:USA500`, etc.). |
 | `--days` | int | 30 | Period (7–90 days) |
 | `--initial-balance` | float | 10000 | Starting balance USD |
 

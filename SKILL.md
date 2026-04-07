@@ -87,7 +87,7 @@ skills/zonein/
 | "Set up Telegram" | `telegram-setup-init --bot-token <token>` |
 | "HIP-3 stock trading?" | `hip3-dexs` + `hip3-assets xyz` (use `dex:COIN` format, e.g. `xyz:TSLA`) |
 | "Withdraw my funds" | `agent-disable <id>` then `agent-withdraw <id> --to 0x...` |
-| "Backtest my agent" | `agent-backtest <id> --symbol BTC --days 30` |
+| "Backtest my agent" | `agent-backtest <id> --symbol xyz:TSLA --days 30` (or `BTC`) |
 
 For detailed command parameters, see [Commands Reference](references/COMMANDS.md).
 
@@ -242,6 +242,7 @@ For position management, market overview, deep analysis, and **HITL trade plan w
 HIP-3 = builder-deployed perpetuals on Hyperliquid — stocks (TSLA, NVDA), commodities (GOLD), indices (US500).
 
 **Same commands as regular perps** — use `dex:COIN` format: `xyz:TSLA`, `hyna:BTC`, `flx:GOLD`.
+**HIP-3 BACKTESTING IS FULLY SUPPORTED.** You can run `agent-backtest` with any HIP-3 symbol (e.g. `xyz:TSLA`). DO NOT hallucinate that backtesting is limited to BTC/ETH/SOL/HYPE.
 
 | Key difference | Detail |
 |---------------|--------|
