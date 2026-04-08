@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Zonein MCP API Client — OpenClaw Skill Script
+Zonein MCP API Client — Cross-Platform AI Agent Skill Script
 
 SECURITY MANIFEST:
   Environment variables accessed: ZONEIN_API_KEY (only)
   External endpoints called: https://mcp.zonein.xyz/api/v1/* (only)
-  Local files read: ~/.openclaw/openclaw.json (API key fallback only, if ZONEIN_API_KEY env var is not set)
+  Local files read: ~/.zonein/config.json, ~/.openclaw/openclaw.json (API key fallback only)
   Local files written: none
   Output sanitization: All API responses are truncated (max 500 chars/field) before output
   Financial gate: --confirm flag required for all financial commands (programmatic, not bypassable via prompt)
@@ -19,7 +19,7 @@ Commands:
   consensus        — PM consensus positions
   trader <wallet>  — PM trader profile + performance
   pm-top           — PM top traders by smart score
-  smart-bettors    — PM smart money bettors (high ROI)
+  pm-traders-smart — PM smart money traders (high ROI)
   trader-positions <wallet> — PM trader current positions
   trader-trades <wallet> — PM trader trade history
   perp-signals     — Perp trading signals (HyperLiquid)
@@ -120,10 +120,15 @@ def _output(data):
 
 
 def get_api_key():
-    """Get ZONEIN_API_KEY from environment."""
+    """Get ZONEIN_API_KEY from environment or config files.
+    Search order:
+      1. ZONEIN_API_KEY environment variable (universal, all platforms)
+      2. ~/.openclaw/openclaw.json (OpenClaw backward compatibility)
+      3. ~/.zonein/config.json (generic cross-platform config)
+    """
     key = os.environ.get("ZONEIN_API_KEY", "")
     if not key:
-        # Fallback: read from ~/.openclaw/openclaw.json (documented in SKILL.md)
+        # Fallback 1: OpenClaw config (backward compatibility)
         config_path = os.path.expanduser("~/.openclaw/openclaw.json")
         if os.path.exists(config_path):
             try:
@@ -134,7 +139,17 @@ def get_api_key():
             except Exception:
                 pass
     if not key:
-        print(json.dumps({"error": "ZONEIN_API_KEY not set. Get your key at https://app.zonein.xyz/pm"}))
+        # Fallback 2: Generic cross-platform config
+        generic_path = os.path.expanduser("~/.zonein/config.json")
+        if os.path.exists(generic_path):
+            try:
+                with open(generic_path, "r") as f:
+                    cfg = json.load(f)
+                key = cfg.get("api_key", "") or cfg.get("apiKey", "")
+            except Exception:
+                pass
+    if not key:
+        print(json.dumps({"error": "ZONEIN_API_KEY not set. Get your key at https://app.zonein.xyz"}))
         sys.exit(1)
     return key
 
@@ -240,7 +255,7 @@ def cmd_leaderboard(args):
 
 def cmd_consensus(args):
     """PM consensus positions."""
-    params = {"min_bettors": args.min_bettors}
+    params = {"min_bettors": args.min_traders}
     data = api_request("/pm/consensus", params)
     _output(data)
 
@@ -260,8 +275,8 @@ def cmd_pm_top(args):
     _output(data)
 
 
-def cmd_smart_bettors(args):
-    """PM smart money bettors (high ROI, high trade count)."""
+def cmd_smart_traders(args):
+    """PM smart money traders (high ROI, high trade count)."""
     params = {"limit": args.limit}
     data = api_request("/pm/traders/smart-bettors", params)
     _output(data)
@@ -936,7 +951,7 @@ def main():
 
     # --- PM Consensus ---
     p = sub.add_parser("consensus", help="PM consensus positions")
-    p.add_argument("--min-bettors", type=int, default=3)
+    p.add_argument("--min-traders", type=int, default=3)
     p.set_defaults(func=cmd_consensus)
 
     # --- PM Trader ---
@@ -950,10 +965,10 @@ def main():
     p.add_argument("--min-score", type=float, default=None)
     p.set_defaults(func=cmd_pm_top)
 
-    # --- PM Smart Bettors ---
-    p = sub.add_parser("smart-bettors", help="PM smart money bettors (high ROI)")
+    # --- PM Smart Money Traders ---
+    p = sub.add_parser("pm-traders-smart", help="PM smart money traders (high ROI)")
     p.add_argument("--limit", type=int, default=50)
-    p.set_defaults(func=cmd_smart_bettors)
+    p.set_defaults(func=cmd_smart_traders)
 
     # --- PM Trader Positions ---
     p = sub.add_parser("trader-positions", help="PM trader current positions")

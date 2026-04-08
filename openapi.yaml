@@ -1,0 +1,559 @@
+openapi: 3.1.0
+info:
+  title: ZoneIn Smart Money Trading Intelligence API
+  description: |
+    Access smart money signals from 500+ whale wallets on Hyperliquid, AI composite trading signals,
+    technical analysis, derivatives data, autonomous trading agent management, HIP-3 stocks, 
+    and Polymarket predictions.
+  version: 2.3.6
+  contact:
+    name: ZoneIn
+    url: https://zonein.xyz
+servers:
+  - url: https://mcp.zonein.xyz/api/v1
+    description: Production
+
+security:
+  - apiKeyAuth: []
+
+components:
+  securitySchemes:
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: "ZoneIn API key (starts with zn_). Get at https://app.zonein.xyz"
+
+paths:
+  # ─── Polymarket ───
+  /pm/signals:
+    get:
+      operationId: getPmSignals
+      summary: Get Polymarket smart money trading signals
+      description: Returns signals showing what top traders are positioning on across Polymarket prediction markets.
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+          description: Max signals (1-100)
+        - name: categories
+          in: query
+          schema: { type: string }
+          description: "Comma-separated: POLITICS,CRYPTO,SPORTS,CULTURE,ECONOMICS,TECH,FINANCE"
+        - name: period
+          in: query
+          schema: { type: string, default: WEEK, enum: [DAY, WEEK, MONTH, ALL] }
+        - name: min_wallets
+          in: query
+          schema: { type: integer }
+          description: Minimum smart wallets for consensus
+      responses:
+        "200":
+          description: List of PM signals
+
+  /pm/leaderboard:
+    get:
+      operationId: getPmLeaderboard
+      summary: Get Polymarket leaderboard — top traders by PnL
+      parameters:
+        - name: period
+          in: query
+          schema: { type: string, default: WEEK, enum: [DAY, WEEK, MONTH, ALL] }
+        - name: category
+          in: query
+          schema: { type: string, default: OVERALL }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+      responses:
+        "200":
+          description: Leaderboard entries
+
+  /pm/consensus:
+    get:
+      operationId: getPmConsensus
+      summary: Get Polymarket consensus positions where smart money traders agree
+      parameters:
+        - name: min_traders
+          in: query
+          schema: { type: integer, default: 3 }
+          description: Minimum traders agreeing on a position
+      responses:
+        "200":
+          description: Consensus positions
+
+  /pm/trader/{wallet}:
+    get:
+      operationId: getPmTrader
+      summary: Get Polymarket trader profile by wallet
+      parameters:
+        - name: wallet
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Trader profile
+
+  /pm/traders/top:
+    get:
+      operationId: getPmTopTraders
+      summary: Get Polymarket top traders by smart score
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+        - name: min_score
+          in: query
+          schema: { type: number }
+      responses:
+        "200":
+          description: Top traders
+
+  /pm/trader/{wallet}/positions:
+    get:
+      operationId: getPmTraderPositions
+      summary: Get trader's current Polymarket positions
+      parameters:
+        - name: wallet
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Current positions
+
+  /pm/trader/{wallet}/trades:
+    get:
+      operationId: getPmTraderTrades
+      summary: Get trader's Polymarket trade history
+      parameters:
+        - name: wallet
+          in: path
+          required: true
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 100 }
+      responses:
+        "200":
+          description: Trade history
+
+  # ─── Perpetuals (HyperLiquid) ───
+  /perp/signals:
+    get:
+      operationId: getPerpSignals
+      summary: Get HyperLiquid perp trading signals from smart money wallets
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+        - name: min_wallets
+          in: query
+          schema: { type: integer }
+        - name: min_score
+          in: query
+          schema: { type: number }
+      responses:
+        "200":
+          description: Perp signals
+
+  /perp/traders:
+    get:
+      operationId: getPerpTraders
+      summary: Get perp smart money traders
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+        - name: min_score
+          in: query
+          schema: { type: number }
+        - name: categories
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Smart traders
+
+  /perp/traders/top:
+    get:
+      operationId: getPerpTop
+      summary: Get perp top performers by PnL
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 10 }
+        - name: time_period
+          in: query
+          schema: { type: string, default: month, enum: [day, week, month] }
+      responses:
+        "200":
+          description: Top performers
+
+  /perp/coins:
+    get:
+      operationId: getPerpCoins
+      summary: Get coin distribution (long vs short sentiment)
+      responses:
+        "200":
+          description: Coin distribution
+
+  /perp/categories:
+    get:
+      operationId: getPerpCategories
+      summary: List perp trader categories
+      responses:
+        "200":
+          description: Categories
+
+  /perp/categories/stats:
+    get:
+      operationId: getPerpCategoryStats
+      summary: Get perp category statistics
+      responses:
+        "200":
+          description: Category stats
+
+  /perp/trader/{address}:
+    get:
+      operationId: getPerpTrader
+      summary: Get perp trader details by address
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Trader details
+
+  /perp/liquidation-map/{coin}:
+    get:
+      operationId: getLiquidationMap
+      summary: Get liquidation price distribution for a coin
+      parameters:
+        - name: coin
+          in: path
+          required: true
+          schema: { type: string }
+        - name: buckets
+          in: query
+          schema: { type: integer, default: 40 }
+      responses:
+        "200":
+          description: Liquidation map
+
+  # ─── AI Dashboard ───
+  /dashboard/overview:
+    get:
+      operationId: getDashboard
+      summary: Get AI Dashboard overview — top signals across all asset types
+      responses:
+        "200":
+          description: Dashboard overview
+
+  /dashboard/latest/{type}:
+    get:
+      operationId: getDashboardLatest
+      summary: Get latest AI signal snapshots by asset type
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema: { type: string, enum: [perp, spot, pm, hip3] }
+        - name: limit
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Signal snapshots
+
+  /dashboard/asset/{type}/{symbol}:
+    get:
+      operationId: getDashboardAsset
+      summary: Get full detail for a single asset (SM + TA + Market)
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema: { type: string, enum: [perp, spot, pm, hip3] }
+        - name: symbol
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Asset detail
+
+  /dashboard/agent-signal/perp/{symbol}:
+    get:
+      operationId: getAgentSignalPerp
+      summary: Get raw composite data for perp trading agents
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema: { type: string }
+        - name: categories
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Composite signal data
+
+  # ─── Derivatives ───
+  /derivatives/indicators/{symbol}:
+    get:
+      operationId: getDerivatives
+      summary: Get all derivatives indicators (OI, funding, L/S ratio, liquidations)
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Derivatives indicators
+
+  /derivatives/fear-greed:
+    get:
+      operationId: getFearGreed
+      summary: Get Crypto Fear & Greed Index
+      responses:
+        "200":
+          description: Fear & Greed Index
+
+  /derivatives/pairs/{symbol}:
+    get:
+      operationId: getDerivativesPairs
+      summary: Get per-exchange pair data
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Per-exchange data
+
+  # ─── Technical Analysis ───
+  /ta/indicators/{symbol}:
+    get:
+      operationId: getTa
+      summary: Get multi-timeframe TA indicators
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema: { type: string }
+        - name: timeframes
+          in: query
+          schema: { type: string }
+        - name: indicators
+          in: query
+          schema: { type: string }
+        - name: exchange
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: TA indicators
+
+  /ta/indicator/{symbol}/{indicator}:
+    get:
+      operationId: getTaSingle
+      summary: Get a single TA indicator value
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema: { type: string }
+        - name: indicator
+          in: path
+          required: true
+          schema: { type: string }
+        - name: interval
+          in: query
+          schema: { type: string, default: "4h" }
+        - name: exchange
+          in: query
+          schema: { type: string }
+        - name: period
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Single indicator value
+
+  # ─── HIP-3 ───
+  /dashboard/hip3/dexs:
+    get:
+      operationId: getHip3Dexs
+      summary: List all HIP-3 DEXs
+      responses:
+        "200":
+          description: HIP-3 DEXs
+
+  /dashboard/hip3/assets/{dex}:
+    get:
+      operationId: getHip3Assets
+      summary: List assets for a HIP-3 DEX
+      parameters:
+        - name: dex
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Assets
+
+  # ─── Agents ───
+  /agents/:
+    get:
+      operationId: getAgents
+      summary: List your trading agents
+      responses:
+        "200":
+          description: Agent list
+    post:
+      operationId: createAgent
+      summary: Create a new trading agent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                agent_type: { type: string, default: composite }
+                allowed_assets: { type: array, items: { type: string } }
+                max_leverage: { type: integer }
+                execution_mode: { type: string, enum: [auto, hitl] }
+                withdrawal_addresses: { type: array, items: { type: string } }
+      responses:
+        "201":
+          description: Agent created
+
+  /agents/{agent_id}:
+    get:
+      operationId: getAgent
+      summary: Get agent details
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Agent details
+    patch:
+      operationId: updateAgent
+      summary: Update agent configuration
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Agent updated
+    delete:
+      operationId: deleteAgent
+      summary: Delete agent
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Agent deleted
+
+  /agents/{agent_id}/overview:
+    get:
+      operationId: getAgentOverview
+      summary: Get agent overview (PnL, ROI, win rate)
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Agent overview
+
+  /agents/{agent_id}/stats:
+    get:
+      operationId: getAgentStats
+      summary: Get agent performance stats
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Performance stats
+
+  /agents/{agent_id}/balance:
+    get:
+      operationId: getAgentBalance
+      summary: Get agent vault balance
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Balance info
+
+  /agents/{agent_id}/positions:
+    get:
+      operationId: getAgentPositions
+      summary: Get agent open positions
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Open positions
+
+  /agents/{agent_id}/deposit-info:
+    get:
+      operationId: getAgentDeposit
+      summary: Get deposit address and payment links
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Deposit info
+
+  /agents/plans/pending:
+    get:
+      operationId: getPendingPlans
+      summary: Check pending trade plans across all agents (HITL)
+      responses:
+        "200":
+          description: Pending plans
+
+  /auth/api-key/status:
+    get:
+      operationId: getStatus
+      summary: Check API key status
+      responses:
+        "200":
+          description: Key status

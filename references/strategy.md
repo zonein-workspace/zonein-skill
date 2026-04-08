@@ -40,7 +40,7 @@ Perp signals are consensus-based:
 ### Agent Types
 
 #### Prediction Market Agent
-- Follows smart bettor consensus on Polymarket
+- Follows smart money trader consensus on Polymarket
 - Trades YES/NO shares based on signal strength
 - Domain filter: categories like POLITICS, CRYPTO, SPORTS
 - Uses LLM to validate signal direction before execution

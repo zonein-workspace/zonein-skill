@@ -142,7 +142,7 @@ Plans expire after **2 hours** by default.
 **Cron fallback** (if no Telegram):
 ```bash
 openclaw cron add --name "Agent Monitor" --every "5m" --session isolated \
-  --message "Check for pending trading agent trade plans by running: python3 skills/zonein/scripts/zonein.py agent-check. If pending plans, present each with signal tracker format. If none, say HEARTBEAT_OK." \
+  --message "Check for pending trading agent trade plans by running: python3 scripts/zonein.py agent-check. If pending plans, present each with signal tracker format. If none, say HEARTBEAT_OK." \
   --announce --exact
 ```
 

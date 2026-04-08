@@ -1,6 +1,6 @@
 # Zonein Command Reference
 
-Detailed parameter tables for all commands. Prefix: `python3 skills/zonein/scripts/zonein.py`
+Detailed parameter tables for all commands. Prefix: `python3 scripts/zonein.py`
 
 ---
 
@@ -23,11 +23,11 @@ Detailed parameter tables for all commands. Prefix: `python3 skills/zonein/scrip
 | `--category` | str | OVERALL | `OVERALL`, `POLITICS`, `SPORTS`, `CRYPTO`, `CULTURE`, `ECONOMICS`, `TECH`, `FINANCE` | Category filter |
 | `--limit` | int | 20 | 1–500 | Max traders to return |
 
-### `consensus` — PM positions where smart bettors agree
+### `consensus` — PM positions where smart money traders agree
 
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
-| `--min-bettors` | int | 3 | Minimum bettors agreeing on a position |
+| `--min-traders` | int | 3 | Minimum traders agreeing on a position |
 
 ### `trader` — PM trader profile by wallet
 
@@ -42,11 +42,11 @@ Detailed parameter tables for all commands. Prefix: `python3 skills/zonein/scrip
 | `--limit` | int | 50 | Max traders to return |
 | `--min-score` | float | 0 | Minimum smart score |
 
-### `smart-bettors` — PM smart money bettors (high ROI, high trade count)
+### `pm-traders-smart` — PM smart money traders (high ROI, high trade count)
 
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
-| `--limit` | int | 50 | Max bettors to return |
+| `--limit` | int | 50 | Max traders to return |
 
 ### `trader-positions` — PM trader current positions
 
