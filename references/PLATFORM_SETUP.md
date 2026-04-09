@@ -9,7 +9,29 @@ ZoneIn supports multiple AI agent platforms. Choose the setup method for your pl
 
 ---
 
-## Claude.ai (Web) — Remote MCP Connector
+## 🚀 Fast Install (Recommended)
+
+For most modern AI coding environments and agents (such as **Claude Code**, **Windsurf**, **Cursor**, **Copilot**, and generic CLI agents), you can automatically install the ZoneIn skill with a single command:
+
+```bash
+npx skills add https://github.com/zonein-workspace/zonein-skill --skill zonein
+```
+
+After installation, simply set your API key in your environment and launch your AI assistant:
+
+```bash
+export ZONEIN_API_KEY="zn_your_key_here"
+```
+
+*Your agent will auto-discover the skill and is instantly ready to fetch market data and manage your ZoneIn trades.*
+
+---
+
+## Manual Setup for Specialized Platforms
+
+For platforms requiring specific cloud integrations, UI setups, or dedicated MCP servers not supported by the 1-click script above, follow the specialized instructions below.
+
+### Claude.ai (Web) — Remote MCP Connector
 
 > **Requires:** Claude Pro, Max, Team, or Enterprise plan.
 
@@ -33,11 +55,11 @@ Claude.ai web connects to remote MCP servers via Custom Connectors with OAuth 2.
 6. Enter your **ZoneIn API Key** (`zn_...`) and click **Authorize**
 7. Done! ZoneIn tools will appear in your chats automatically.
 
-> **How it works:** Claude uses Dynamic Client Registration (OAuth 2.1) to automatically register itself. When you first use a ZoneIn tool, you'll be asked to enter your API key once. After that, Claude uses bearer tokens automatically.
+> **How it works:** Claude uses Dynamic Client Registration (OAuth 2.1) to automatically register itself. When you first use a ZoneIn tool, you'll be asked to authorize. After that, Claude uses token authentication autonomously.
 
 ---
 
-## Claude Desktop — MCP Server (stdio)
+### Claude Desktop — MCP Server (stdio)
 
 Claude Desktop runs local MCP servers via stdio protocol.
 
@@ -62,91 +84,12 @@ Claude Desktop runs local MCP servers via stdio protocol.
    }
    ```
 
-3. Replace `/absolute/path/to/zonein-mcp-server/` with the actual path to the [zonein-mcp-server](https://github.com/zonein-workspace/zonein-mcp-server) project.
-
-4. **Restart Claude Desktop.** ZoneIn tools will appear automatically in the tools menu (🔧).
-
-> **Note:** This requires the `zonein-mcp-server` project with MongoDB access. For most users, the **Claude.ai web** method is simpler.
+3. Replace `/absolute/path/to/zonein-mcp-server/` with the actual path to the cloned `zonein-mcp-server` repository.
+4. **Restart Claude Desktop.** ZoneIn tools will appear automatically in the tools menu.
 
 ---
 
-## Claude Code — Agent Skills
-
-Claude Code auto-discovers skills from `.claude/skills/` directories.
-
-**Steps:**
-
-1. Copy the skill folder into your project:
-   ```bash
-   cp -r zonein-skill .claude/skills/hyperliquid-trading-agent
-   ```
-   Or for global access (all projects):
-   ```bash
-   cp -r zonein-skill ~/.claude/skills/hyperliquid-trading-agent
-   ```
-
-2. Set your API key:
-   ```bash
-   export ZONEIN_API_KEY="zn_your_key_here"
-   ```
-
-3. Start Claude Code — the skill loads automatically. Ask about trading signals, create agents, etc.
-
----
-
-## Cursor
-
-### Option A: Agent Skills (recommended)
-
-1. Copy the skill folder:
-   ```bash
-   cp -r zonein-skill .cursor/skills/hyperliquid-trading-agent
-   ```
-
-2. Set `ZONEIN_API_KEY` in your terminal/environment.
-
-3. Cursor will auto-discover the skill.
-
-### Option B: MCP Server
-
-1. Open Cursor → **Settings** → **MCP** → **Add Server**
-2. Fill in:
-
-   | Field | Value |
-   |:---|:---|
-   | **Name** | `zonein` |
-   | **Command** | `python3` |
-   | **Args** | `/path/to/zonein-mcp-server/mcp_server.py` |
-   | **Env** | `MONGO_URI=your_mongodb_uri` |
-
-3. Save and restart.
-
----
-
-## Windsurf
-
-### Option A: Agent Skills
-
-1. Copy the skill folder:
-   ```bash
-   cp -r zonein-skill /your/workspace/skills/hyperliquid-trading-agent
-   ```
-
-2. Set `ZONEIN_API_KEY` in your environment.
-
-### Option B: MCP Server
-
-1. Open Windsurf → **Settings** → **MCP**
-2. Add server:
-
-   | Field | Value |
-   |:---|:---|
-   | **Command** | `python3 /path/to/zonein-mcp-server/mcp_server.py` |
-   | **Env** | `MONGO_URI=your_mongodb_uri` |
-
----
-
-## Manus — Import from GitHub
+### Manus — Import from GitHub
 
 Manus supports importing skills directly from GitHub.
 
@@ -163,24 +106,21 @@ Manus supports importing skills directly from GitHub.
    ```
    ZONEIN_API_KEY=zn_your_key_here
    ```
-6. Use it: type `/` in chat → select **hyperliquid-trading-agent**, or just ask about trading naturally.
 
 ---
 
-## GPT Custom Actions (OpenAI) — OpenAPI
+### GPT Custom Actions (OpenAI) — OpenAPI
 
 GPT Custom Actions connect to external APIs via OpenAPI specs.
 
 **Steps:**
 
-1. Go to [chat.openai.com](https://chat.openai.com) → **Explore GPTs** → **Create a GPT** (or edit existing)
+1. Go to [chat.openai.com](https://chat.openai.com) → **Explore GPTs** → **Create a GPT**
 2. Click the **Configure** tab → scroll down to **Actions** → **Create new action**
 3. Click **Import from URL** and paste:
    ```
    https://mcp.zonein.xyz/docs/openapi.json
    ```
-   Or click **Import Schema** and paste the contents of `openapi.yaml` from this skill.
-
 4. Set **Authentication:**
 
    | Field | Value |
@@ -191,23 +131,17 @@ GPT Custom Actions connect to external APIs via OpenAPI specs.
    | **Custom Header Name** | `X-API-Key` |
 
 5. Click **Save** → **Test** any action to verify.
-
-6. In your GPT instructions, add:
-   ```
-   You have access to ZoneIn Trading Intelligence API. Use it when users ask about crypto trading, whale activity, market analysis, or trading signals.
-   ```
-
-> **Available actions:** All read-only endpoints (signals, leaderboard, dashboard, TA, derivatives). Financial endpoints (open/close positions) are NOT included for safety.
+6. In your GPT instructions, add: `You have access to ZoneIn Trading Intelligence API. Use it when users ask about crypto trading, whale activity, market analysis, or trading signals.`
 
 ---
 
-## OpenClaw
+### OpenClaw
 
 1. Open **Gateway Dashboard** → navigate to `/skills`
 2. Enable **hyperliquid-trading-agent**
 3. Paste your API key (`zn_...`)
 
-Alternative methods:
+*Alternative methods:*
 ```bash
 # Via environment variable
 export ZONEIN_API_KEY="zn_your_key_here"
@@ -218,32 +152,26 @@ export ZONEIN_API_KEY="zn_your_key_here"
 
 ---
 
-## Gemini / Antigravity
+### Gemini / Antigravity
 
-Same as Claude Code — Agent Skills:
-
-1. Place the skill folder in your workspace skills directory
-2. Set `ZONEIN_API_KEY` environment variable
-3. The agent will auto-discover the skill from `SKILL.md`
+1. Run the `npx skills add` script at the root of your project workspace.
+2. Set the `ZONEIN_API_KEY` environment variable.
+3. The agent will auto-discover the skill from `SKILL.md`.
 
 ---
 
-## Generic Setup (Any Platform)
+## Manual / Python Setup
 
-If your platform supports running Python scripts:
+If you prefer to run the scripts manually without an agent:
 
 ```bash
-# 1. Set API key
 export ZONEIN_API_KEY="zn_your_key_here"
 
-# 2. Verify connection
+# Verify connection
 python3 scripts/zonein.py status
 
-# 3. Get trading signals
+# Get trading signals
 python3 scripts/zonein.py perp-signals --limit 5
-
-# 4. View AI dashboard
-python3 scripts/zonein.py dashboard
 ```
 
-All commands: see [Commands Reference](COMMANDS.md) or run `python3 scripts/zonein.py --help`.
+All commands: see [Commands Reference](COMMANDS.md).
